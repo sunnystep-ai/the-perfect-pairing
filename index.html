@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Sunnystep · The Perfect Pairing</title>
+<style>
+  @font-face{font-family:'Matter';src:url('fonts/Matter-Light.ttf') format('truetype');font-weight:300;font-style:normal;font-display:swap;}
+  @font-face{font-family:'Matter';src:url('fonts/Matter-Regular.ttf') format('truetype');font-weight:400;font-style:normal;font-display:swap;}
+  @font-face{font-family:'Matter';src:url('fonts/Matter-Medium.ttf') format('truetype');font-weight:500;font-style:normal;font-display:swap;}
+  @font-face{font-family:'Matter';src:url('fonts/Matter-SemiBold.ttf') format('truetype');font-weight:600;font-style:normal;font-display:swap;}
+  @font-face{font-family:'Matter';src:url('fonts/Matter-Bold.ttf') format('truetype');font-weight:700 900;font-style:normal;font-display:swap;}
+  :root{
+    --orange:#F56A19; --orange-2:#FF9248; --ink:#37304a; --muted:#8e88a0;
+    --glass:rgba(255,255,255,.66); --glassline:rgba(255,255,255,.9);
+    --shadow:0 22px 48px rgba(96,76,130,.18);
+  }
+  *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; font-family:'Matter',-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; }
+  body{ margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center; padding:18px;
+        background:#dfe3ec; }
+  .device{ width:418px; max-width:100%; height:858px; max-height:95vh; border-radius:42px; overflow:hidden; position:relative;
+           box-shadow:0 30px 80px rgba(40,30,70,.42); border:9px solid #15131c;
+           /* official SUNNYSTEP brand gradient — stretched to fill the tall screen
+              (the asset is square; 'cover' was cropping it to the pale centre). CSS brand fallback beneath. */
+           background:url('brand-gradient.png') center/100% 100% no-repeat,
+             radial-gradient(at 86% 7%,  #FBF49E 0%, transparent 55%),
+             radial-gradient(at 12% 93%, #FBF49E 0%, transparent 55%),
+             radial-gradient(at 7% 12%,  #C3E4F7 0%, transparent 55%),
+             radial-gradient(at 93% 88%, #C3E4F7 0%, transparent 55%),
+             #E9F2DE; }
+  .screen{ position:absolute; inset:0; padding:30px 22px 78px; display:none; flex-direction:column; overflow-y:auto; }
+  .screen.active{ display:flex; animation:rise .42s cubic-bezier(.2,.8,.25,1); }
+  @keyframes rise{ from{opacity:0; transform:translateY(12px);} to{opacity:1; transform:none;} }
+  .wm{ display:flex; align-items:center; gap:6px; font-weight:800; color:var(--ink); font-size:15px; letter-spacing:.2px; }
+  .wm .dot{ width:18px;height:18px;border-radius:50%;background:linear-gradient(135deg,#FFC24B,var(--orange)); }
+  .logo{ width:168px; height:46px; object-fit:cover; object-position:center; mix-blend-mode:multiply; display:block; margin-top:2px; }
+  .logo.sm{ width:118px; height:32px; }
+  h1{ font-size:30px; line-height:1.14; margin:18px 4px 8px; color:var(--ink); font-weight:800; letter-spacing:-.4px; }
+  h1 .thin{ font-weight:400; color:#6a637d; }
+  p.sub{ color:var(--muted); font-size:15px; line-height:1.5; margin:0 4px 18px; }
+  .spacer{ flex:1; }
+  /* glass + white cards */
+  .glass{ background:var(--glass); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px);
+          border:1px solid var(--glassline); border-radius:28px; box-shadow:var(--shadow); }
+  .pad{ padding:18px; }
+  /* buttons */
+  .btn{ display:block; width:100%; border:none; border-radius:30px; padding:17px; font-size:17px; font-weight:800; cursor:pointer;
+        color:#fff; background:linear-gradient(135deg,var(--orange-2),var(--orange));
+        box-shadow:0 12px 26px rgba(245,106,25,.36); letter-spacing:.2px; }
+  .btn:disabled{ background:#e9d3c4; box-shadow:none; color:#fff8; cursor:default; }
+  .btn.ghost{ background:rgba(255,255,255,.7); color:var(--ink); box-shadow:var(--shadow); border:1px solid var(--glassline); }
+  .center{ text-align:center; }
+  /* details */
+  .label{ font-size:12px; font-weight:800; color:var(--muted); text-transform:uppercase; letter-spacing:.7px; margin:4px 2px 8px; }
+  input[type=email]{ width:100%; padding:15px 16px; font-size:16px; border:1px solid #ece7f2; border-radius:16px; background:#fff; color:var(--ink); }
+  .sizes{ display:grid; grid-template-columns:repeat(5,1fr); gap:8px; }
+  .sz{ padding:13px 0; text-align:center; border:1px solid #ece7f2; border-radius:14px; font-weight:800; cursor:pointer; color:var(--ink); background:#fff; transition:.15s; }
+  .sz.sel{ background:linear-gradient(135deg,#5a4b7a,var(--ink)); color:#fff; border-color:transparent; transform:translateY(-1px); box-shadow:0 8px 16px rgba(55,48,74,.3); }
+  .consent{ display:flex; gap:10px; align-items:flex-start; margin-top:16px; font-size:13px; color:var(--muted); line-height:1.45; }
+  .consent input{ margin-top:2px; transform:scale(1.25); accent-color:var(--orange); }
+  /* scan stage */
+  .stage{ position:relative; height:330px; border-radius:26px; margin:8px 0 16px; overflow:hidden;
+          background:radial-gradient(120% 90% at 50% 20%, #fff 0%, rgba(255,255,255,.35) 70%, rgba(255,255,255,0) 100%); }
+  .frame{ position:absolute; inset:46px 70px; }
+  .corner{ position:absolute; width:30px; height:30px; border:3px solid var(--orange); }
+  .corner.tl{ top:0;left:0;border-right:0;border-bottom:0;border-radius:10px 0 0 0; }
+  .corner.tr{ top:0;right:0;border-left:0;border-bottom:0;border-radius:0 10px 0 0; }
+  .corner.bl{ bottom:0;left:0;border-right:0;border-top:0;border-radius:0 0 0 10px; }
+  .corner.br{ bottom:0;right:0;border-left:0;border-top:0;border-radius:0 0 10px 0; }
+  .face{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:120px; }
+  .mesh{ position:absolute; inset:46px 70px; border-radius:16px; opacity:0; transition:opacity .5s;
+         background-image:radial-gradient(rgba(245,106,25,.6) 1.1px, transparent 1.6px); background-size:15px 15px; }
+  .mesh.on{ opacity:.85; animation:sweep 1.5s linear infinite; }
+  @keyframes sweep{ from{background-position:0 0;} to{background-position:15px 15px;} }
+  .fchip{ position:absolute; background:rgba(255,255,255,.82); backdrop-filter:blur(8px); border:1px solid var(--glassline);
+          padding:8px 12px; border-radius:16px; font-size:12.5px; font-weight:800; color:var(--ink); box-shadow:0 8px 18px rgba(96,76,130,.18);
+          opacity:0; transform:scale(.8); }
+  .fchip.show{ opacity:1; transform:scale(1); transition:.45s cubic-bezier(.2,.9,.3,1.3); }
+  .fchip .k{ color:var(--orange); }
+  .scanline{ position:absolute; left:70px; right:70px; top:46px; height:2px; background:linear-gradient(90deg,transparent,var(--orange),transparent); opacity:.0; }
+  .scanline.on{ opacity:.9; animation:scan 1.8s ease-in-out infinite; }
+  @keyframes scan{ 0%{top:46px;}50%{top:284px;}100%{top:46px;} }
+  /* result */
+  .badge{ font-size:23px; font-weight:800; color:var(--ink); margin:2px 4px 14px; letter-spacing:-.3px; }
+  .shoewrap{ background:#fff; border-radius:22px; padding:8px; }
+  .shoewrap img{ width:100%; aspect-ratio:1/1; object-fit:cover; border-radius:16px; display:block; }
+  .pname{ font-weight:800; font-size:19px; color:var(--ink); margin-top:12px; }
+  .pcol{ color:var(--muted); font-size:13.5px; margin-top:2px; }
+  .why{ font-size:14.5px; color:#5a5470; line-height:1.5; margin:14px 4px; }
+  .pricerow{ display:flex; align-items:baseline; gap:10px; margin:4px 4px 2px; }
+  .pricerow .deal{ font-size:26px; font-weight:900; color:var(--orange); }
+  .pricerow s{ color:#b3aec2; font-size:16px; }
+  .pricerow .pct{ margin-left:auto; background:#fff0e6; color:var(--orange); font-weight:800; font-size:12px; padding:5px 10px; border-radius:20px; }
+  .sent{ font-size:13px; color:var(--muted); margin:10px 4px 2px; }
+  .stk{ font-size:13.5px; font-weight:800; margin:12px 4px 14px; display:flex; align-items:center; gap:7px; }
+  .stk.here{ color:#2fa45f; } .stk.ship{ color:#6b6480; }
+  .stk .pip{ width:8px;height:8px;border-radius:50%; } .here .pip{ background:#2fa45f; } .ship .pip{ background:#9b94ad; }
+  /* points */
+  .ring{ width:150px;height:150px;border-radius:50%; margin:6px auto 14px; display:flex;align-items:center;justify-content:center;flex-direction:column;
+         background:conic-gradient(var(--orange) 0 78%, #ffe3cf 78% 100%); box-shadow:0 14px 30px rgba(245,106,25,.28); }
+  .ring .inner{ width:122px;height:122px;border-radius:50%; background:#fff; display:flex;align-items:center;justify-content:center;flex-direction:column; }
+  .ring .big{ font-size:40px; font-weight:900; color:var(--orange); line-height:1; }
+  .ring .lbl{ font-size:12px; font-weight:800; color:var(--muted); margin-top:3px; }
+  /* demo */
+  .demo{ position:absolute; left:0; right:0; bottom:0; background:rgba(21,19,28,.92); color:#cfc9da; font-size:11px;
+         display:flex; gap:7px; align-items:center; padding:8px 14px; }
+  .demo b{ color:#fff; } .demo button{ background:#2c2740; color:#fff; border:none; border-radius:9px; padding:6px 9px; font-size:11px; font-weight:800; cursor:pointer; }
+  .demo .on{ background:var(--orange); }
+</style>
+</head>
+<body>
+<div class="device">
+
+  <!-- 1 · WELCOME -->
+  <section id="welcome" class="screen active">
+    <img class="logo" src="logo.png" alt="sunnystep">
+    <h1>The Perfect Pairing<br><span class="thin">your second pair, curated.</span></h1>
+    <p class="sub">You bought a full-price pair — now scan to unlock <b style="color:var(--ink)">50% off</b> an AI-matched second pair, in your size.</p>
+    <div class="glass" style="padding:18px;text-align:center">
+      <img src="images/balance-runner-sakura.png" style="width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:18px;display:block" alt="Sunnystep capsule">
+    </div>
+    <div class="spacer"></div>
+    <button class="btn" onclick="go('details')">Start &rarr;</button>
+    <p class="sub center" style="margin:12px 0 0">Staff: tap to begin with the customer</p>
+  </section>
+
+  <!-- 2 · DETAILS -->
+  <section id="details" class="screen">
+    <div class="wm"><span class="dot"></span> Your details</div>
+    <div class="glass pad" style="margin-top:16px">
+      <div class="label">Email</div>
+      <input type="email" id="email" placeholder="customer@email.com" oninput="check()" value="jane@email.com">
+      <div class="label" style="margin-top:16px">Shoe size</div>
+      <div class="sizes" id="sizeGrid"></div>
+      <label class="consent"><input type="checkbox" id="consent" onchange="check()" checked>
+        <span>Fun style scan to find your match. My photo is processed on the spot and <b style="color:var(--ink)">deleted right after</b> — never stored.</span></label>
+    </div>
+    <div class="spacer"></div>
+    <button class="btn" id="scanBtn" onclick="go('face')" disabled>Scan me &rarr;</button>
+  </section>
+
+  <!-- 3 · FACE -->
+  <section id="face" class="screen">
+    <div class="wm center" style="justify-content:center">Frame your face</div>
+    <div class="stage" style="margin-top:14px">
+      <div class="face">🙂</div>
+      <div class="frame"><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></div>
+    </div>
+    <p class="sub center">Center your face in the frame and hold still.</p>
+    <div class="spacer"></div>
+    <button class="btn" onclick="analyse()">Hold steady &amp; scan</button>
+  </section>
+
+  <!-- 4 · ANALYSING -->
+  <section id="analysing" class="screen">
+    <div class="wm center" style="justify-content:center">Reading your style…</div>
+    <div class="stage" style="margin-top:14px">
+      <div class="face">🙂</div>
+      <div class="mesh on"></div>
+      <div class="scanline on"></div>
+      <div class="frame"><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></div>
+      <div class="fchip" id="fc0" style="top:30px;left:12px"></div>
+      <div class="fchip" id="fc1" style="top:140px;right:8px"></div>
+      <div class="fchip" id="fc2" style="bottom:26px;left:20px"></div>
+    </div>
+    <div class="spacer"></div>
+    <p class="sub center" id="findMsg">finding your match ●●●</p>
+  </section>
+
+  <!-- 5 · RESULT -->
+  <section id="result" class="screen">
+    <div class="badge">🎉 You've been matched!</div>
+    <div class="glass pad">
+      <div class="shoewrap"><img id="rImg" alt=""></div>
+      <div class="pname" id="rName"></div>
+      <div class="pcol" id="rCol"></div>
+      <div class="why" id="rWhy"></div>
+      <div class="pricerow"><span class="deal" id="rDeal"></span><s id="rRrp"></s><span class="pct">50% OFF</span></div>
+      <div class="stk" id="rStk"></div>
+      <div class="sent" id="rSent"></div>
+    </div>
+    <div style="height:18px"></div>
+    <button class="btn" id="rCta"></button>
+    <button class="btn ghost" style="margin-top:10px" onclick="reset()">Done — next customer</button>
+  </section>
+
+  <!-- 6 · POINTS -->
+  <section id="points" class="screen">
+    <div class="badge">Not your pair today 💛</div>
+    <div class="glass pad center">
+      <p class="sub" style="margin-top:2px">The scan couldn't find a match in your size this time — but you're not leaving empty-handed.</p>
+      <div class="ring"><div class="inner"><div class="big">+300</div><div class="lbl">POINTS</div></div></div>
+      <div style="font-weight:800;color:var(--ink)">Added to your membership</div>
+      <div style="font-size:12.5px;color:var(--muted);margin-top:5px" id="ptsWorth">≈ value pulled from Shopline</div>
+      <div class="sent center" id="pSent" style="margin-top:14px"></div>
+    </div>
+    <div class="spacer"></div>
+    <button class="btn ghost" onclick="reset()">Done — next customer</button>
+  </section>
+
+  <!-- demo controls -->
+  <div class="demo">
+    <b>demo</b>
+    <button id="dStock" onclick="toggleStock()">store stock: ?</button>
+    <button onclick="forceNo()">force no-match</button>
+    <span style="margin-left:auto;opacity:.65">size drives the logic</span>
+  </div>
+</div>
+
+<script>
+const IMG = {
+  runnerTan:"images/balance-runner-natural-tan.png",
+  runnerSakura:"images/balance-runner-sakura.png",
+  walkerTan:"images/balance-walker-natural-tan.png",
+  elevateWhite:"images/elevate-walker-white.png",
+  elevateBlack:"images/elevate-walker-black.png",
+  spaceBlack:"images/space-runner-velvet-black.png"
+};
+// sizes{} = real warehouse stock from Inventory sheet (O3mNsPtR · tab pZsY5Q), snapshot 28 Jun 2026 19:07. Refresh before launch.
+const STYLES = [
+ {name:"Balance Runner", colour:"Natural Tan", img:IMG.runnerTan, rrp:135, deal:67.50, sizes:{35:42,36:63,37:260,38:229,39:7,46:1},
+  why:"Your warm-neutral, easy-going vibe → this clean tonal sneaker.", chips:["Easy Minimalist","Warm Neutrals","Everyday Walker"]},
+ {name:"Balance Runner", colour:"Sakura", img:IMG.runnerSakura, rrp:135, deal:67.50, sizes:{35:1,41:1,42:102},
+  why:"Your soft, playful side → this gentle blush runner.", chips:["Soft & Playful","Blush Tones","Light Steps"]},
+ {name:"Balance Walker", colour:"Natural Tan", img:IMG.walkerTan, rrp:125, deal:62.50, sizes:{35:19,36:67,37:61,38:73},
+  why:"Your classic, fuss-free style → this tonal everyday walker.", chips:["Quiet Classic","Sandy Neutrals","All-Day Ease"]},
+ {name:"Elevate Lace-up Walker", colour:"White", img:IMG.elevateWhite, rrp:145, deal:72.50, sizes:{35:6,36:27,37:45,38:100,39:62,41:2},
+  why:"Your fresh, sporty energy → this crisp white lace-up.", chips:["Fresh & Sporty","Clean Whites","Active Days"]},
+ {name:"Elevate Lace-up Walker", colour:"Black", img:IMG.elevateBlack, rrp:145, deal:72.50, sizes:{35:8,37:28,39:10,40:65,41:22,42:33,43:9,44:7,45:1},
+  why:"Your sleek, go-anywhere style → this versatile black lace-up.", chips:["Sleek & Versatile","Monochrome","Move Fast"]},
+ {name:"Balance Space Runner", colour:"Velvet Full Black", img:IMG.spaceBlack, rrp:145, deal:72.50, sizes:{35:14,36:28,37:46,38:25},
+  why:"Your bold, plush taste → this velvet statement runner.", chips:["Bold & Plush","Velvet Black","Statement Steps"]}
+];
+let state = { size:null, email:"jane@email.com", storeStock:null, forced:null, _k:0 };
+const grid = document.getElementById('sizeGrid');
+for(let s=35;s<=46;s++){ const d=document.createElement('div'); d.className='sz'; d.textContent=s;
+  d.onclick=()=>{ state.size=s; [...grid.children].forEach(c=>c.classList.remove('sel')); d.classList.add('sel'); check(); }; grid.appendChild(d); }
+function check(){ state.email=document.getElementById('email').value;
+  const ok = state.email.includes('@') && state.size && document.getElementById('consent').checked;
+  document.getElementById('scanBtn').disabled=!ok; }
+function go(id){ document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active')); document.getElementById(id).classList.add('active'); }
+function rng(){ state._k=(state._k||(state.size*7+state.email.length)); state._k=(state._k*9301+49297)%233280; return state._k/233280; }
+function analyse(){
+  go('analysing');
+  const eligible = STYLES.filter(s=>(s.sizes[state.size]||0)>0);
+  const match = state.forced==='no' ? null : (eligible.length? eligible[Math.floor(rng()*eligible.length)] : null);
+  const set = match? match.chips : ["Reading vibe","Reading palette","Reading energy"];
+  ['fc0','fc1','fc2'].forEach((id,i)=>{ const el=document.getElementById(id);
+    el.classList.remove('show'); el.innerHTML='<span class="k">✦</span> '+set[i];
+    setTimeout(()=>el.classList.add('show'), 550+i*480); });
+  setTimeout(()=>showResult(match), 2500);
+}
+function showResult(match){
+  if(!match){ document.getElementById('pSent').textContent='✉ Sent to '+state.email; go('points'); return; }
+  document.getElementById('rImg').src=match.img;
+  document.getElementById('rName').textContent=match.name;
+  document.getElementById('rCol').textContent=match.colour+' · in your size '+state.size+' ✓';
+  document.getElementById('rWhy').textContent=match.why;
+  document.getElementById('rDeal').textContent='$'+match.deal.toFixed(2);
+  document.getElementById('rRrp').textContent='$'+match.rrp.toFixed(2);
+  document.getElementById('rSent').textContent='✉ Sent to '+state.email;
+  // In-store first: if the matched size has warehouse stock, offer collect-in-store; only fall back to delivery when there's none.
+  const here = state.storeStock!==null ? state.storeStock : ((match.sizes[state.size]||0)>0);
+  const stk=document.getElementById('rStk'), cta=document.getElementById('rCta');
+  if(here){ stk.className='stk here'; stk.innerHTML='<span class="pip"></span> Available in store — collect at the counter'; cta.textContent='Redeem now – collect in store  →'; }
+  else{ stk.className='stk ship'; stk.innerHTML='<span class="pip"></span> Not in store — free delivery to your door'; cta.textContent='Redeem now – deliver to my home  →'; }
+  cta.onclick=()=>alert('→ applies the unique 50% code to '+match.name+' '+match.colour+' and opens '+(here?'in-store collect':'home-delivery')+' checkout (Shopline).');
+  go('result');
+}
+function reset(){ state={size:null,email:document.getElementById('email').value||'jane@email.com',storeStock:null,forced:null,_k:0};
+  [...grid.children].forEach(c=>c.classList.remove('sel')); check(); updateDemo(); go('welcome'); }
+function forceNo(){ state.forced='no'; alert('Demo: next scan returns no match → 300 points'); }
+function toggleStock(){ state.storeStock = state.storeStock===null?true:(state.storeStock?false:null); updateDemo(); }
+function updateDemo(){ const b=document.getElementById('dStock');
+  b.textContent='store stock: '+(state.storeStock===null?'auto':(state.storeStock?'YES':'no')); b.className=state.storeStock?'on':''; }
+updateDemo(); check();
+</script>
+</body>
+</html>
