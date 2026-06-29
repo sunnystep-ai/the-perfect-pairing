@@ -29,7 +29,7 @@
              radial-gradient(at 7% 12%,  #C3E4F7 0%, transparent 55%),
              radial-gradient(at 93% 88%, #C3E4F7 0%, transparent 55%),
              #E9F2DE; }
-  .screen{ position:absolute; inset:0; padding:30px 22px 78px; display:none; flex-direction:column; overflow-y:auto; }
+  .screen{ position:absolute; inset:0; padding:30px 22px 100px; display:none; flex-direction:column; overflow-y:auto; }
   .screen.active{ display:flex; animation:rise .42s cubic-bezier(.2,.8,.25,1); }
   @keyframes rise{ from{opacity:0; transform:translateY(12px);} to{opacity:1; transform:none;} }
   .wm{ display:flex; align-items:center; gap:6px; font-weight:800; color:var(--ink); font-size:15px; letter-spacing:.2px; }
@@ -103,7 +103,7 @@
   .ring .big{ font-size:40px; font-weight:900; color:var(--orange); line-height:1; }
   .ring .lbl{ font-size:12px; font-weight:800; color:var(--muted); margin-top:3px; }
   /* demo */
-  .demo{ position:absolute; left:0; right:0; bottom:0; background:rgba(21,19,28,.92); color:#cfc9da; font-size:11px;
+  .demo{ position:absolute; left:0; right:0; bottom:38px; background:rgba(21,19,28,.92); color:#cfc9da; font-size:11px;
          display:flex; gap:7px; align-items:center; padding:8px 14px; }
   .demo b{ color:#fff; } .demo button{ background:#2c2740; color:#fff; border:none; border-radius:9px; padding:6px 9px; font-size:11px; font-weight:800; cursor:pointer; }
   .demo .on{ background:var(--orange); }
@@ -111,6 +111,11 @@
   .snapimg{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; transform:scaleX(-1); }
   .camhint{ position:absolute; left:0; right:0; bottom:10px; text-align:center; color:#fff; font-size:12px; font-weight:800; letter-spacing:.3px; text-shadow:0 1px 6px rgba(0,0,0,.55); pointer-events:none; }
   .stage.live{ background:#0c0b10; }
+  .storebar{ position:absolute; left:0; right:0; bottom:0; height:38px; display:flex; align-items:center; gap:8px; padding:0 14px; z-index:6;
+             background:rgba(255,255,255,.88); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); border-top:1px solid var(--glassline); }
+  .storebar .pin{ font-size:13px; }
+  .storebar .lab{ font-size:10.5px; font-weight:800; color:var(--muted); text-transform:uppercase; letter-spacing:.6px; white-space:nowrap; }
+  .storebar select{ flex:1; min-width:0; border:none; background:transparent; color:var(--ink); font-family:inherit; font-size:13px; font-weight:800; padding:4px 2px; -webkit-appearance:menulist; }
 </style>
 <script defer src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api/dist/face-api.js"></script>
 </head>
@@ -207,6 +212,12 @@
     <button class="btn ghost" onclick="reset()">Done — next customer</button>
   </section>
 
+  <!-- store picker — staff sets their store once (persists) -->
+  <div class="storebar">
+    <span class="pin">📍</span><span class="lab">Store</span>
+    <select id="storeSel" onchange="setStore()"></select>
+  </div>
+
   <!-- demo controls -->
   <div class="demo">
     <b>demo</b>
@@ -240,7 +251,21 @@ const STYLES = [
  {name:"Balance Space Runner", colour:"Velvet Full Black", img:IMG.spaceBlack, rrp:145, deal:72.50, sizes:{35:14,36:28,37:46,38:25},
   why:"Your bold, plush taste → this velvet statement runner.", chips:["Bold & Plush","Velvet Black","Statement Steps"]}
 ];
-let state = { size:null, email:"jane@email.com", storeStock:null, forced:null, _k:0, camOn:false, _profile:null };
+let state = { size:null, email:"jane@email.com", storeStock:null, forced:null, _k:0, camOn:false, _profile:null, store:null, storeName:null };
+// SG retail stores (value = Shopline location_id → used for the live per-store stock check later)
+const STORES = [
+  {id:"5865050260003101895", name:"ION Orchard"},
+  {id:"5864830361855095228", name:"VivoCity"},
+  {id:"5864830428460621090", name:"Jurong Point"},
+  {id:"5865050277317188812", name:"NEX"},
+  {id:"5865050201836495203", name:"Bugis Junction"},
+  {id:"7175211961331530934", name:"Causeway Point"},
+  {id:"6059065582442803050", name:"Westgate"},
+  {id:"5865050285538025846", name:"Tampines Mall"},
+  {id:"6059063994210850763", name:"Suntec City"},
+  {id:"6244689029083438751", name:"Chinatown Point"},
+  {id:"6566143943179531633", name:"Pasir Ris Mall"}
+];
 // per-colour tone targets (warm axis -1..1, light 0..1, vibe) — the on-device face read maps to the nearest
 const TONE = {
   "Natural Tan":       {warm: 0.85, light:0.55, vibe:'classic'},
@@ -361,23 +386,32 @@ function showResult(match){
   document.getElementById('rDeal').textContent='$'+match.deal.toFixed(2);
   document.getElementById('rRrp').textContent='$'+match.rrp.toFixed(2);
   document.getElementById('rSent').textContent='✉ Sent to '+state.email;
-  // In-store first: if the matched size has warehouse stock, offer collect-in-store; only fall back to delivery when there's none.
+  // collect at the staff's store when the matched size is there; else staff arrange free home delivery.
+  // NOTE: currently uses the 28-Jun WAREHOUSE snapshot as a proxy — swap to live per-store stock at state.store when provided.
   const here = state.storeStock!==null ? state.storeStock : ((match.sizes[state.size]||0)>0);
   const stk=document.getElementById('rStk'), cta=document.getElementById('rCta');
-  if(here){ stk.className='stk here'; stk.innerHTML='<span class="pip"></span> Available in store — collect at the counter'; cta.textContent='Redeem now – collect in store  →'; }
-  else{ stk.className='stk ship'; stk.innerHTML='<span class="pip"></span> Not in store — free delivery to your door'; cta.textContent='Redeem now – deliver to my home  →'; }
-  cta.onclick=()=>alert('→ applies the unique 50% code to '+match.name+' '+match.colour+' and opens '+(here?'in-store collect':'home-delivery')+' checkout (Shopline · Quynh wires this).');
+  const at = state.storeName ? (' at '+state.storeName) : ' in store';
+  if(here){ stk.className='stk here'; stk.innerHTML='<span class="pip"></span> Available'+at+' — collect at the counter'; cta.textContent='Redeem now – collect in store  →'; }
+  else{ stk.className='stk ship'; stk.innerHTML='<span class="pip"></span> Not'+at+' — free home delivery (staff will arrange)'; cta.textContent='Redeem now – free delivery  →'; }
+  cta.onclick=()=>alert('→ applies the unique 50% code to '+match.name+' '+match.colour+', then '+(here?'opens in-store collect':'staff place the free home-delivery order')+' (Shopline · Quynh wires this).');
   go('result');
 }
 function reset(){ stopCam();
   const sn=document.getElementById('snapImg'); if(sn){ sn.src=''; sn.style.display='none'; }
   const ff2=document.getElementById('faceFallback2'); if(ff2) ff2.style.display='';
   state={size:null,email:document.getElementById('email').value||'jane@email.com',storeStock:null,forced:null,_k:0,camOn:false,_profile:null};
-  [...grid.children].forEach(c=>c.classList.remove('sel')); check(); updateDemo(); go('welcome'); }
+  [...grid.children].forEach(c=>c.classList.remove('sel')); check(); updateDemo(); setStore(); go('welcome'); }
 function forceNo(){ state.forced='no'; alert('Demo: next scan returns no match → 300 points'); }
 function toggleStock(){ state.storeStock = state.storeStock===null?true:(state.storeStock?false:null); updateDemo(); }
 function updateDemo(){ const b=document.getElementById('dStock');
   b.textContent='store stock: '+(state.storeStock===null?'auto':(state.storeStock?'YES':'no')); b.className=state.storeStock?'on':''; }
+// ---- store picker (staff sets once; persists across customers + reloads) ----
+const storeSel=document.getElementById('storeSel');
+storeSel.innerHTML='<option value="">Choose store…</option>'+STORES.map(s=>'<option value="'+s.id+'">'+s.name+'</option>').join('');
+function setStore(){ state.store=storeSel.value||null; state.storeName=(STORES.find(s=>s.id===state.store)||{}).name||null;
+  try{ if(state.store) localStorage.setItem('pp_store',state.store); else localStorage.removeItem('pp_store'); }catch(e){} }
+try{ const sv=localStorage.getItem('pp_store'); if(sv){ storeSel.value=sv; } }catch(e){}
+setStore();
 updateDemo(); check();
 window.addEventListener('load', ()=>{ setTimeout(loadFace, 300); }); // warm up models on the device
 </script>
