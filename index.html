@@ -221,7 +221,6 @@
   <!-- demo controls -->
   <div class="demo">
     <b>demo</b>
-    <button id="dStock" onclick="toggleStock()">store stock: ?</button>
     <button onclick="forceNo()">force no-match</button>
     <span style="margin-left:auto;opacity:.65">on-device read · never stored</span>
   </div>
@@ -386,25 +385,20 @@ function showResult(match){
   document.getElementById('rDeal').textContent='$'+match.deal.toFixed(2);
   document.getElementById('rRrp').textContent='$'+match.rrp.toFixed(2);
   document.getElementById('rSent').textContent='✉ Sent to '+state.email;
-  // collect at the staff's store when the matched size is there; else staff arrange free home delivery.
-  // NOTE: currently uses the 28-Jun WAREHOUSE snapshot as a proxy — swap to live per-store stock at state.store when provided.
-  const here = state.storeStock!==null ? state.storeStock : ((match.sizes[state.size]||0)>0);
+  // Redemption is IN-STORE only (no delivery). When live per-store stock is wired, matching is gated to the staff's store so collect is always possible; no store-stock in their size → +300 points.
   const stk=document.getElementById('rStk'), cta=document.getElementById('rCta');
   const at = state.storeName ? (' at '+state.storeName) : ' in store';
-  if(here){ stk.className='stk here'; stk.innerHTML='<span class="pip"></span> Available'+at+' — collect at the counter'; cta.textContent='Redeem now – collect in store  →'; }
-  else{ stk.className='stk ship'; stk.innerHTML='<span class="pip"></span> Not'+at+' — free home delivery (staff will arrange)'; cta.textContent='Redeem now – free delivery  →'; }
-  cta.onclick=()=>alert('→ applies the unique 50% code to '+match.name+' '+match.colour+', then '+(here?'opens in-store collect':'staff place the free home-delivery order')+' (Shopline · Quynh wires this).');
+  stk.className='stk here'; stk.innerHTML='<span class="pip"></span> Available'+at+' — collect at the counter';
+  cta.textContent='Redeem now – collect in store  →';
+  cta.onclick=()=>alert('→ applies the unique 50% code to '+match.name+' '+match.colour+' and opens in-store collect (Shopline · Quynh wires this).');
   go('result');
 }
 function reset(){ stopCam();
   const sn=document.getElementById('snapImg'); if(sn){ sn.src=''; sn.style.display='none'; }
   const ff2=document.getElementById('faceFallback2'); if(ff2) ff2.style.display='';
   state={size:null,email:document.getElementById('email').value||'jane@email.com',storeStock:null,forced:null,_k:0,camOn:false,_profile:null};
-  [...grid.children].forEach(c=>c.classList.remove('sel')); check(); updateDemo(); setStore(); go('welcome'); }
+  [...grid.children].forEach(c=>c.classList.remove('sel')); check(); setStore(); go('welcome'); }
 function forceNo(){ state.forced='no'; alert('Demo: next scan returns no match → 300 points'); }
-function toggleStock(){ state.storeStock = state.storeStock===null?true:(state.storeStock?false:null); updateDemo(); }
-function updateDemo(){ const b=document.getElementById('dStock');
-  b.textContent='store stock: '+(state.storeStock===null?'auto':(state.storeStock?'YES':'no')); b.className=state.storeStock?'on':''; }
 // ---- store picker (staff sets once; persists across customers + reloads) ----
 const storeSel=document.getElementById('storeSel');
 storeSel.innerHTML='<option value="">Choose store…</option>'+STORES.map(s=>'<option value="'+s.id+'">'+s.name+'</option>').join('');
@@ -412,7 +406,7 @@ function setStore(){ state.store=storeSel.value||null; state.storeName=(STORES.f
   try{ if(state.store) localStorage.setItem('pp_store',state.store); else localStorage.removeItem('pp_store'); }catch(e){} }
 try{ const sv=localStorage.getItem('pp_store'); if(sv){ storeSel.value=sv; } }catch(e){}
 setStore();
-updateDemo(); check();
+check();
 window.addEventListener('load', ()=>{ setTimeout(loadFace, 300); }); // warm up models on the device
 </script>
 </body>
