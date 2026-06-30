@@ -334,13 +334,22 @@ function buildProfile(det, tone){
   const genderChip = gender==='female'?'Feminine flair':'Sharp & sleek';
   return { gender, warm, lightAxis, undertone, depth, happy, vibe, chips:[genderChip, undertone+' · '+depth, vibe] };
 }
-function pickByProfile(eligible, pr){ let best=null, bs=-1e9;
-  eligible.forEach(s=>{ const t=TONE[s.colour]||{warm:0,light:0.5,vibe:'classic'};
-    let sc = -( Math.abs(pr.warm-t.warm) + 0.8*Math.abs(pr.lightAxis-t.light) );
-    if(pr.happy && t.vibe==='playful') sc+=0.35;
-    if(!pr.happy && (t.vibe==='sleek'||t.vibe==='bold'||t.vibe==='classic')) sc+=0.15;
-    if(pr.gender==='female' && t.vibe==='playful') sc+=0.10;
-    if(sc>bs){ bs=sc; best=s; } });
+// Clearance-first matcher: skew to whatever we hold the MOST of in the customer's size (→ Natural Tan in 35–38, Sakura in 42).
+// CLEAR_W = skew strength; higher = more Natural Tan. Face read is a secondary nudge so the scan still feels personal.
+const CLEAR_W = 1.5;
+function pickMatch(eligible, pr){
+  const sz=state.size;
+  const maxS = Math.max.apply(null, eligible.map(s=>s.sizes[sz]||0)) || 1;
+  let best=null, bs=-1e9;
+  eligible.forEach(s=>{
+    let sc = CLEAR_W * ((s.sizes[sz]||0)/maxS);            // clear the deepest stock first
+    if(pr){ const t=TONE[s.colour]||{warm:0,light:0.5,vibe:'classic'};
+      sc += -( Math.abs(pr.warm-t.warm) + 0.8*Math.abs(pr.lightAxis-t.light) );
+      if(pr.happy && t.vibe==='playful') sc+=0.35;
+      if(!pr.happy && (t.vibe==='sleek'||t.vibe==='bold'||t.vibe==='classic')) sc+=0.15;
+    }
+    if(sc>bs){ bs=sc; best=s; }
+  });
   return best;
 }
 async function analyse(){
@@ -366,8 +375,7 @@ async function analyse(){
   state._profile=profile;
   let match=null;
   if(state.forced==='no') match=null;
-  else if(profile && eligible.length) match=pickByProfile(eligible, profile);
-  else if(eligible.length) match=eligible[Math.floor(rng()*eligible.length)];
+  else if(eligible.length) match=pickMatch(eligible, profile); // clearance-skewed (works with or without a face read)
   const set = profile?profile.chips:(match?match.chips:["Reading vibe","Reading palette","Reading energy"]);
   ['fc0','fc1','fc2'].forEach((id,i)=>{ const el=document.getElementById(id);
     el.classList.remove('show'); el.innerHTML='<span class="k">✦</span> '+(set[i]||'');
