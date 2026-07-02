@@ -2,8 +2,9 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
 <title>Sunnystep · The Perfect Pairing</title>
 <style>
   @font-face{font-family:'Matter';src:url('fonts/Matter-Light.ttf') format('truetype');font-weight:300;font-style:normal;font-display:swap;}
@@ -34,8 +35,9 @@
   @keyframes rise{ from{opacity:0; transform:translateY(12px);} to{opacity:1; transform:none;} }
   .wm{ display:flex; align-items:center; gap:6px; font-weight:800; color:var(--ink); font-size:15px; letter-spacing:.2px; }
   .wm .dot{ width:18px;height:18px;border-radius:50%;background:linear-gradient(135deg,#FFC24B,var(--orange)); }
-  .logo{ width:168px; height:46px; object-fit:cover; object-position:center; mix-blend-mode:multiply; display:block; margin-top:2px; }
-  .logo.sm{ width:118px; height:32px; }
+  .logo{ width:150px; height:auto; display:block; margin:2px auto 2px 0; }
+  .logo.sm{ width:118px; }
+  .hero{ width:100%; border-radius:22px; display:block; margin-top:6px; box-shadow:var(--shadow); }
   h1{ font-size:30px; line-height:1.14; margin:18px 4px 8px; color:var(--ink); font-weight:800; letter-spacing:-.4px; }
   h1 .thin{ font-weight:400; color:#6a637d; }
   p.sub{ color:var(--muted); font-size:15px; line-height:1.5; margin:0 4px 18px; }
@@ -111,27 +113,72 @@
   .snapimg{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; transform:scaleX(-1); }
   .camhint{ position:absolute; left:0; right:0; bottom:10px; text-align:center; color:#fff; font-size:12px; font-weight:800; letter-spacing:.3px; text-shadow:0 1px 6px rgba(0,0,0,.55); pointer-events:none; }
   .stage.live{ background:#0c0b10; }
-  .storebar{ position:absolute; left:0; right:0; bottom:0; height:38px; display:flex; align-items:center; gap:8px; padding:0 14px; z-index:6;
-             background:rgba(255,255,255,.88); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); border-top:1px solid var(--glassline); }
-  .storebar .pin{ font-size:13px; }
-  .storebar .lab{ font-size:10.5px; font-weight:800; color:var(--muted); text-transform:uppercase; letter-spacing:.6px; white-space:nowrap; }
-  .storebar select{ flex:1; min-width:0; border:none; background:transparent; color:var(--ink); font-family:inherit; font-size:13px; font-weight:800; padding:4px 2px; -webkit-appearance:menulist; }
+  /* store selection (gate before the flow) */
+  .storelist{ display:flex; flex-direction:column; gap:10px; margin-top:6px; }
+  .storebtn{ display:flex; align-items:center; gap:12px; width:100%; text-align:left; border:1px solid var(--glassline);
+             border-radius:20px; padding:17px 18px; background:rgba(255,255,255,.72); color:var(--ink); font-weight:800;
+             font-size:17px; cursor:pointer; box-shadow:var(--shadow); transition:.15s; }
+  .storebtn:active{ transform:translateY(1px); }
+  .storebtn .pin{ font-size:19px; line-height:1; }
+  .storebtn.sel{ background:linear-gradient(135deg,var(--orange-2),var(--orange)); color:#fff; border-color:transparent; }
+  .storechip{ display:inline-flex; align-items:center; gap:7px; align-self:flex-start; background:rgba(255,255,255,.72);
+              border:1px solid var(--glassline); padding:8px 14px; border-radius:20px; font-size:13px; font-weight:800;
+              color:var(--ink); cursor:pointer; box-shadow:var(--shadow); margin-bottom:2px; }
+  .storechip .chg{ color:var(--orange); }
+
+  /* ---- iPad / tablet kiosk: full-screen, larger type + touch targets ---- */
+  @media (min-width:700px){
+    body{ padding:0; background:#c9ceda; }
+    .device{ width:100vw; height:100vh; height:100dvh; max-width:none; max-height:none;
+             border-radius:0; border:0; box-shadow:none; }
+    .screen{ padding:calc(54px + env(safe-area-inset-top)) 40px calc(120px + env(safe-area-inset-bottom)); align-items:center; }
+    .screen > *{ width:100%; max-width:580px; }
+    .wm{ font-size:19px; }
+    .logo{ width:200px; height:auto; } .logo.sm{ width:150px; }
+    .hero{ border-radius:28px; }
+    h1{ font-size:46px; margin:24px 4px 12px; }
+    p.sub{ font-size:19px; margin:0 4px 22px; }
+    .glass{ border-radius:32px; } .pad{ padding:24px; }
+    .btn{ font-size:22px; padding:22px; border-radius:38px; }
+    .label{ font-size:14px; margin:6px 2px 10px; }
+    input[type=email]{ font-size:20px; padding:19px 18px; border-radius:18px; }
+    .sizes{ gap:12px; } .sz{ padding:20px 0; font-size:20px; border-radius:16px; }
+    .consent{ font-size:15px; margin-top:20px; } .consent input{ transform:scale(1.5); }
+    .stage{ height:460px; border-radius:30px; }
+    .frame,.mesh{ inset:60px 96px; } .scanline{ left:96px; right:96px; }
+    @keyframes scan{ 0%{top:60px;}50%{top:400px;}100%{top:60px;} }
+    .face{ font-size:170px; }
+    .fchip{ font-size:14px; padding:10px 15px; }
+    .badge{ font-size:30px; margin:4px 4px 18px; }
+    .pname{ font-size:24px; } .pcol{ font-size:15px; } .why{ font-size:17px; }
+    .pricerow .deal{ font-size:32px; } .pricerow s{ font-size:19px; } .pricerow .pct{ font-size:14px; }
+    .stk{ font-size:16px; } .sent{ font-size:15px; }
+    .ring{ width:180px; height:180px; } .ring .inner{ width:146px; height:146px; } .ring .big{ font-size:48px; }
+    .storebtn{ font-size:20px; padding:20px 22px; border-radius:22px; } .storebtn .pin{ font-size:22px; }
+    .storechip{ font-size:15px; padding:10px 16px; }
+  }
 </style>
 <script defer src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api/dist/face-api.js"></script>
 </head>
 <body>
 <div class="device">
 
+  <!-- 0 · STORE (staff gate — set before starting) -->
+  <section id="store" class="screen active">
+    <img class="logo" src="logo.svg" alt="sunnystep">
+    <h1>Select your store</h1>
+    <p class="sub">Staff: tap the store you're in. This is set once for today's session — every scan will check stock and collection here.</p>
+    <div class="storelist" id="storeList"></div>
+    <div style="height:20px"></div>
+  </section>
+
   <!-- 1 · WELCOME -->
-  <section id="welcome" class="screen active">
-    <img class="logo" src="logo.png" alt="sunnystep">
-    <h1>The Perfect Pairing<br><span class="thin">your second pair, curated.</span></h1>
-    <p class="sub">You bought a full-price pair — now scan to unlock <b style="color:var(--ink)">50% off</b> an AI-matched second pair, in your size.</p>
-    <div class="glass" style="padding:18px;text-align:center">
-      <img src="images/balance-runner-sakura.png" style="width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:18px;display:block" alt="Sunnystep capsule">
-    </div>
-    <div class="spacer"></div>
-    <button class="btn" onclick="go('details')">Start &rarr;</button>
+  <section id="welcome" class="screen">
+    <div class="storechip" onclick="go('store')"><span>📍</span><span id="chipName">Choose store</span><span class="chg">· change</span></div>
+    <img class="logo" src="logo.svg" alt="sunnystep">
+    <img class="hero" src="images/ai-scan.png" alt="The Perfect Pairing — your second pair, curated. You're in the winners' circle: your first pair unlocked exclusive AI matching. Scan to unlock your second pair at 50% off.">
+    <div class="spacer" style="min-height:26px"></div>
+    <button class="btn" style="margin-top:6px" onclick="go('details')">Reveal my match &rarr;</button>
     <p class="sub center" style="margin:12px 0 0">Staff: tap to begin with the customer</p>
   </section>
 
@@ -193,7 +240,7 @@
       <div class="stk" id="rStk"></div>
       <div class="sent" id="rSent"></div>
     </div>
-    <div style="height:18px"></div>
+    <div style="height:34px"></div>
     <button class="btn" id="rCta"></button>
     <button class="btn ghost" style="margin-top:10px" onclick="reset()">Done — next customer</button>
   </section>
@@ -211,12 +258,6 @@
     <div class="spacer"></div>
     <button class="btn ghost" onclick="reset()">Done — next customer</button>
   </section>
-
-  <!-- store picker — staff sets their store once (persists) -->
-  <div class="storebar">
-    <span class="pin">📍</span><span class="lab">Store</span>
-    <select id="storeSel" onchange="setStore()"></select>
-  </div>
 
   <!-- demo controls -->
   <div class="demo">
@@ -261,9 +302,8 @@ const STORES = [
   {id:"7175211961331530934", name:"Causeway Point"},
   {id:"6059065582442803050", name:"Westgate"},
   {id:"5865050285538025846", name:"Tampines Mall"},
-  {id:"6059063994210850763", name:"Suntec City"},
   {id:"6244689029083438751", name:"Chinatown Point"},
-  {id:"6566143943179531633", name:"Pasir Ris Mall"}
+  {id:"CHANGI_T4_LOCATION_ID_TBD", name:"Changi T4"} // TODO: real Shopline location_id before live stock check is wired
 ];
 // per-colour tone targets (warm axis -1..1, light 0..1, vibe) — the on-device face read maps to the nearest
 const TONE = {
@@ -383,8 +423,26 @@ async function analyse(){
   document.getElementById('findMsg').textContent = profile?'matching your read ●●●':'finding your match ●●●';
   setTimeout(()=>showResult(match), 2400);
 }
+// ---- Klaviyo client-side event push (public company_id only — safe on a public page). ----
+// Sends NO email itself; a Klaviyo Flow triggered on these metrics sends the congrats/points email (built with CRM agent).
+const KLAVIYO_ID="YrDDH5";
+function kEvent(metric, props){
+  try{
+    if(!state.email || !state.email.includes('@')) return;
+    fetch("https://a.klaviyo.com/client/events/?company_id="+KLAVIYO_ID, {
+      method:"POST", headers:{"Content-Type":"application/json","revision":"2025-04-15"},
+      body:JSON.stringify({data:{type:"event",attributes:{
+        metric:{data:{type:"metric",attributes:{name:metric}}},
+        profile:{data:{type:"profile",attributes:{email:state.email}}},
+        properties:props||{}
+      }}})
+    }).catch(e=>console.warn('klaviyo event failed', e));
+  }catch(e){ console.warn('klaviyo', e); }
+}
 function showResult(match){
-  if(!match){ document.getElementById('pSent').textContent='✉ Sent to '+state.email; go('points'); return; }
+  if(!match){ document.getElementById('pSent').textContent='✉ Sent to '+state.email;
+    kEvent("Perfect Pairing No Match", {size:state.size, store:state.storeName||'', points:300});
+    go('points'); return; }
   document.getElementById('rImg').src=match.img;
   document.getElementById('rName').textContent=match.name;
   document.getElementById('rCol').textContent=match.colour+' · in your size '+state.size+' ✓';
@@ -398,22 +456,31 @@ function showResult(match){
   const at = state.storeName ? (' at '+state.storeName) : ' in store';
   stk.className='stk here'; stk.innerHTML='<span class="pip"></span> Available'+at+' — collect at the counter';
   cta.textContent='Redeem now – collect in store  →';
-  cta.onclick=()=>alert('→ applies the unique 50% code to '+match.name+' '+match.colour+' and opens in-store collect (Shopline · Quynh wires this).');
+  cta.onclick=()=>alert('→ Staff keys the 50% at POS for '+match.name+' '+match.colour+' (size '+state.size+') — collect at the counter. POS set up by Quynh.');
+  kEvent("Perfect Pairing Matched", {shoe:match.name, colour:match.colour, size:state.size, deal:match.deal, rrp:match.rrp, store:state.storeName||'',
+    img:(function(){ try{ return new URL(match.img, location.href).href; }catch(e){ return ''; } })()}); // absolute URL of the matched shoe → email renders the real pair
   go('result');
 }
 function reset(){ stopCam();
   const sn=document.getElementById('snapImg'); if(sn){ sn.src=''; sn.style.display='none'; }
   const ff2=document.getElementById('faceFallback2'); if(ff2) ff2.style.display='';
-  state={size:null,email:document.getElementById('email').value||'jane@email.com',storeStock:null,forced:null,_k:0,camOn:false,_profile:null};
-  [...grid.children].forEach(c=>c.classList.remove('sel')); check(); setStore(); go('welcome'); }
+  const keepStore=state.store, keepName=state.storeName;
+  state={size:null,email:document.getElementById('email').value||'jane@email.com',storeStock:null,forced:null,_k:0,camOn:false,_profile:null,store:keepStore,storeName:keepName};
+  [...grid.children].forEach(c=>c.classList.remove('sel')); check(); go('welcome'); } // store persists → straight back to welcome for the next customer
 function forceNo(){ state.forced='no'; alert('Demo: next scan returns no match → 300 points'); }
-// ---- store picker (staff sets once; persists across customers + reloads) ----
-const storeSel=document.getElementById('storeSel');
-storeSel.innerHTML='<option value="">Choose store…</option>'+STORES.map(s=>'<option value="'+s.id+'">'+s.name+'</option>').join('');
-function setStore(){ state.store=storeSel.value||null; state.storeName=(STORES.find(s=>s.id===state.store)||{}).name||null;
-  try{ if(state.store) localStorage.setItem('pp_store',state.store); else localStorage.removeItem('pp_store'); }catch(e){} }
-try{ const sv=localStorage.getItem('pp_store'); if(sv){ storeSel.value=sv; } }catch(e){}
-setStore();
+// ---- store gate (staff picks once; persists across customers + reloads) ----
+const storeList=document.getElementById('storeList');
+function renderStores(){ storeList.innerHTML=STORES.map(s=>
+  '<button class="storebtn'+(s.id===state.store?' sel':'')+'" onclick="chooseStore(\''+s.id+'\')"><span class="pin">📍</span>'+s.name+'</button>').join(''); }
+function applyStore(){ const s=STORES.find(x=>x.id===state.store);
+  state.storeName=s?s.name:null;
+  document.getElementById('chipName').textContent=s?s.name:'Choose store';
+  try{ if(state.store) localStorage.setItem('pp_store',state.store); else localStorage.removeItem('pp_store'); }catch(e){}
+  renderStores(); }
+function chooseStore(id){ state.store=id; applyStore(); go('welcome'); }
+try{ const sv=localStorage.getItem('pp_store'); if(sv && STORES.some(s=>s.id===sv)){ state.store=sv; } }catch(e){}
+applyStore();
+if(state.store) go('welcome'); // already set today → skip the gate
 check();
 window.addEventListener('load', ()=>{ setTimeout(loadFace, 300); }); // warm up models on the device
 </script>
