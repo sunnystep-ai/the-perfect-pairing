@@ -95,6 +95,25 @@
   .pricerow s{ color:#b3aec2; font-size:16px; }
   .pricerow .pct{ margin-left:auto; background:#fff0e6; color:var(--orange); font-weight:800; font-size:12px; padding:5px 10px; border-radius:20px; }
   .sent{ font-size:13px; color:var(--muted); margin:10px 4px 2px; }
+  /* result reveal — score counts up, persona lands, card flips in, copy follows */
+  .eyebrow{ font-size:13px; font-weight:800; letter-spacing:1.4px; text-transform:uppercase; color:var(--orange); margin:2px 4px 0; }
+  .score{ font-size:54px; font-weight:900; color:var(--ink); letter-spacing:-1.5px; line-height:1.05; margin:0 4px; }
+  .score .pctm{ font-size:20px; font-weight:800; color:var(--orange); letter-spacing:0; margin-left:6px; }
+  .persona{ font-size:27px; font-weight:800; color:var(--ink); margin:2px 4px 14px; letter-spacing:-.4px; }
+  .kicker{ font-size:12.5px; color:var(--muted); line-height:1.45; margin:0 4px 4px; }
+  .fate{ font-size:13.5px; font-weight:800; color:var(--ink); line-height:1.45; background:#fff7e8; border:1px solid #ffe6c4; border-radius:14px; padding:10px 12px; margin:10px 0; }
+  .fate .k{ color:var(--orange); }
+  #result .rv{ opacity:0; }
+  #result.play .rv{ animation:popin .5s cubic-bezier(.2,.8,.25,1) forwards; }
+  #result.play .card{ animation:flipin .6s cubic-bezier(.2,.8,.25,1) forwards; }
+  #result.play .d1{ animation-delay:.25s; } #result.play .d2{ animation-delay:.45s; }
+  #result.play .d3{ animation-delay:.95s; } #result.play .d4{ animation-delay:1.15s; }
+  #result.play .d5{ animation-delay:1.35s; }
+  @keyframes popin{ from{opacity:0; transform:translateY(10px) scale(.97);} to{opacity:1; transform:none;} }
+  @keyframes flipin{ from{opacity:0; transform:perspective(900px) rotateY(55deg) scale(.94);} to{opacity:1; transform:none;} }
+  .cfbox{ position:absolute; inset:0; pointer-events:none; overflow:hidden; z-index:5; }
+  .cf{ position:absolute; top:-14px; width:9px; height:14px; border-radius:2px; opacity:0; animation:cfall linear forwards; }
+  @keyframes cfall{ 0%{opacity:1; transform:translateY(0) rotate(0deg);} 100%{opacity:0; transform:translateY(660px) rotate(560deg);} }
   .stk{ font-size:13.5px; font-weight:800; margin:12px 4px 14px; display:flex; align-items:center; gap:7px; }
   .stk.here{ color:#2fa45f; } .stk.ship{ color:#6b6480; }
   .stk .pip{ width:8px;height:8px;border-radius:50%; } .here .pip{ background:#2fa45f; } .ship .pip{ background:#9b94ad; }
@@ -150,6 +169,10 @@
     .face{ font-size:170px; }
     .fchip{ font-size:14px; padding:10px 15px; }
     .badge{ font-size:30px; margin:4px 4px 18px; }
+    .eyebrow{ font-size:15px; }
+    .score{ font-size:68px; } .score .pctm{ font-size:25px; }
+    .persona{ font-size:36px; margin-bottom:18px; }
+    .kicker{ font-size:14.5px; } .fate{ font-size:16.5px; padding:13px 15px; }
     .pname{ font-size:24px; } .pcol{ font-size:15px; } .why{ font-size:17px; }
     .pricerow .deal{ font-size:32px; } .pricerow s{ font-size:19px; } .pricerow .pct{ font-size:14px; }
     .stk{ font-size:16px; } .sent{ font-size:15px; }
@@ -230,19 +253,23 @@
 
   <!-- 5 · RESULT -->
   <section id="result" class="screen">
-    <div class="badge">🎉 You've been matched!</div>
-    <div class="glass pad">
+    <div class="eyebrow rv">✨ It's a match</div>
+    <div class="score rv"><span id="rScore">0</span><span class="pctm">% match</span></div>
+    <div class="persona rv d1" id="rPersona"></div>
+    <div class="glass pad card rv d2">
       <div class="shoewrap"><img id="rImg" alt=""></div>
       <div class="pname" id="rName"></div>
       <div class="pcol" id="rCol"></div>
-      <div class="why" id="rWhy"></div>
-      <div class="pricerow"><span class="deal" id="rDeal"></span><s id="rRrp"></s><span class="pct">50% OFF</span></div>
-      <div class="stk" id="rStk"></div>
-      <div class="sent" id="rSent"></div>
+      <div class="why rv d3" id="rWhy"></div>
+      <div class="kicker rv d3" id="rKick"></div>
+      <div class="fate rv d4" id="rFate"></div>
+      <div class="pricerow rv d4"><span class="deal" id="rDeal"></span><s id="rRrp"></s><span class="pct">50% OFF</span></div>
+      <div class="stk rv d5" id="rStk"></div>
+      <div class="sent rv d5" id="rSent"></div>
     </div>
-    <div style="height:34px"></div>
-    <button class="btn" id="rCta"></button>
-    <button class="btn ghost" style="margin-top:10px" onclick="reset()">Done — next customer</button>
+    <div style="height:24px"></div>
+    <button class="btn rv d5" id="rCta"></button>
+    <button class="btn ghost rv d5" style="margin-top:10px" onclick="reset()">Done — next customer</button>
   </section>
 
   <!-- 6 · POINTS -->
@@ -277,19 +304,54 @@ const IMG = {
   spaceBlack:"images/space-runner-velvet-black.png"
 };
 // sizes{} = real warehouse stock from Inventory sheet (O3mNsPtR · tab pZsY5Q), snapshot 28 Jun 2026 19:07. Refresh before launch.
+// persona = fallback identity when the face read fails (persona is otherwise picked from the read, see PERSONAS)
+// whys = emotional match reason per vibe read; a string, or {any, m} when a male read deserves different flavour.
+// Gender is NEVER shown back to the customer — it only tunes tone of voice.
 const STYLES = [
  {name:"Balance Runner", colour:"Natural Tan", img:IMG.runnerTan, rrp:135, deal:67.50, sizes:{35:42,36:63,37:260,38:229,39:7,46:1},
-  why:"Your warm-neutral, easy-going vibe → this clean tonal sneaker.", chips:["Easy Minimalist","Warm Neutrals","Everyday Walker"]},
+  why:"Warm, easy, goes with everything — Natural Tan is the pair the rest of your wardrobe has been waiting for.",
+  persona:"The Everyday Original", chips:["Easy Minimalist","Warm Neutrals","Everyday Walker"],
+  whys:{
+   calm:"The scan read you warm and unhurried — someone who moves through the day on their own rhythm. Natural Tan doesn't ask for attention. It just goes everywhere you do.",
+   playful:"There's an easy warmth the camera caught straight away. Natural Tan is that energy in a shoe — relaxed, sunny, up for wherever the day wanders.",
+   confident:"You read as someone who keeps it simple on purpose. Natural Tan is the quiet flex — one clean tone that works with everything you already own."}},
  {name:"Balance Runner", colour:"Sakura", img:IMG.runnerSakura, rrp:135, deal:67.50, sizes:{35:1,41:1,42:102},
-  why:"Your soft, playful side → this gentle blush runner.", chips:["Soft & Playful","Blush Tones","Light Steps"]},
+  why:"Soft, light, a little bit of blush in every step — Sakura lifts the simplest outfit.",
+  persona:"The Soft Optimist", chips:["Soft & Playful","Blush Tones","Light Steps"],
+  whys:{
+   calm:"Underneath the calm, the scan caught something soft and light. Sakura is that feeling in a shoe — a gentle blush that lifts the simplest outfit.",
+   playful:"There's a brightness the camera caught straight away. Sakura is that feeling in a shoe — soft, light, a little bit of blush in every step.",
+   confident:"You read sure of yourself — which is exactly who wears Sakura best. A soft blush runner only works when you're not trying too hard. You're not."}},
  {name:"Balance Walker", colour:"Natural Tan", img:IMG.walkerTan, rrp:125, deal:62.50, sizes:{35:19,36:67,37:61,38:73},
-  why:"Your classic, fuss-free style → this tonal everyday walker.", chips:["Quiet Classic","Sandy Neutrals","All-Day Ease"]},
+  why:"One warm sandy tone, soft underfoot, zero fuss — the walker that works with everything.",
+  persona:"The Quiet Classic", chips:["Quiet Classic","Sandy Neutrals","All-Day Ease"],
+  whys:{
+   calm:"The scan read you easy and classic — no fuss, no noise. This Natural Tan walker is the same: one warm tone, soft underfoot, good with everything.",
+   playful:"The camera caught a warm, easygoing energy. This Natural Tan walker matches it — light, friendly, made for long wandering days.",
+   confident:"You read as someone who's already sorted — so here's the shoe version of that. A clean Natural Tan walker that never overthinks it and never lets you down."}},
  {name:"Elevate Lace-up Walker", colour:"White", img:IMG.elevateWhite, rrp:145, deal:72.50, sizes:{35:6,36:27,37:45,38:100,39:62,41:2},
-  why:"Your fresh, sporty energy → this crisp white lace-up.", chips:["Fresh & Sporty","Clean Whites","Active Days"]},
+  why:"Crisp, fresh and impossible to get wrong — a clean White lace-up is the easiest yes.",
+  persona:"The Fresh Start", chips:["Fresh & Sporty","Clean Whites","Active Days"],
+  whys:{
+   calm:"The scan read you fresh and clear — someone who likes things clean and simple. A crisp White lace-up is the easiest yes in your wardrobe.",
+   playful:"There's a bright, up-for-anything energy the camera caught immediately. Crisp White keeps up — fresh, sporty, ready to be out all day.",
+   confident:{any:"You read cool and collected — and nothing backs that up like a clean White sneaker. Sharp without shouting.",
+              m:"You read cool and collected — and nothing backs that up like a clean White sneaker. Sharp for work, easy for everything after."}}},
  {name:"Elevate Lace-up Walker", colour:"Black", img:IMG.elevateBlack, rrp:145, deal:72.50, sizes:{35:8,37:28,39:10,40:65,41:22,42:33,43:9,44:7,45:1},
-  why:"Your sleek, go-anywhere style → this versatile black lace-up.", chips:["Sleek & Versatile","Monochrome","Move Fast"]},
+  why:"Sleek, versatile, never off-duty — the Black lace-up that goes everywhere you do.",
+  persona:"The All-Rounder", chips:["Sleek & Versatile","Monochrome","Move Fast"],
+  whys:{
+   calm:{any:"The scan read you sleek and steady — someone who moves through the day without fuss. Black Elevate is the same: goes anywhere, matches everything, never off-duty.",
+         m:"The scan read you sleek and steady — someone who moves through the day without fuss. Black Elevate does both shifts: dress it up, run it down."},
+   playful:"Big bright energy — grounded by the one shoe that goes with all of it. Black Elevate lets the rest of you do the talking.",
+   confident:"You read as someone who's already decided where they're going. Black Elevate keeps up — sleek, sure, zero fuss."}},
  {name:"Balance Space Runner", colour:"Velvet Full Black", img:IMG.spaceBlack, rrp:145, deal:72.50, sizes:{35:14,36:28,37:46,38:25},
-  why:"Your bold, plush taste → this velvet statement runner.", chips:["Bold & Plush","Velvet Black","Statement Steps"]}
+  why:"Plush velvet, deep black, quietly dramatic — a statement you can walk all day in.",
+  persona:"The Night Mover", chips:["Bold & Plush","Velvet Black","Statement Steps"],
+  whys:{
+   calm:"Under the calm, the scan caught a bolder streak. Velvet Full Black is for exactly that — quiet on the surface, a statement up close.",
+   playful:"The camera caught a spark — someone who likes a little drama in the details. Velvet Full Black delivers: plush, deep, unmistakably you.",
+   confident:"You read bold — the kind who doesn't need colour to stand out. Velvet Full Black agrees: all depth, all presence."}}
 ];
 let state = { size:null, email:"jane@email.com", storeStock:null, forced:null, _k:0, camOn:false, _profile:null, store:null, storeName:null };
 // SG retail stores (value = Shopline location_id → used for the live per-store stock check later)
@@ -439,29 +501,87 @@ function kEvent(metric, props){
     }).catch(e=>console.warn('klaviyo event failed', e));
   }catch(e){ console.warn('klaviyo', e); }
 }
+// ---- the reveal: persona + match score + emotional why + fate line ----
+// Persona names come in gendered pairs where it helps (same archetype, different name); the read itself is never shown.
+const PERSONAS = {
+  warm:   { playful:{f:"The Sunny Mover",   m:"The Sunny Mover"},
+            calm:   {f:"The Quiet Glow",    m:"The Steady One"},
+            confident:{f:"The Golden Stride", m:"The Golden Stride"} },
+  cool:   { playful:{f:"The Fresh Spark",   m:"The Fresh Spark"},
+            calm:   {f:"The Effortless One", m:"The Effortless One"},
+            confident:{f:"The Sharp Walker", m:"The Sharp Walker"} },
+  neutral:{ playful:{f:"The Bright Side",   m:"The Bright Side"},
+            calm:   {f:"The Easy Balance",  m:"The Easy Balance"},
+            confident:{f:"The Statement Walker", m:"The Statement Walker"} }
+};
+const KICKER = "Like every Sunnystep, it's tested in MIT Sports Lab — so the pair that matches your look also protects your walk.";
+function vibeKey(p){ return p.happy ? 'playful' : (p.vibe==='Calm & classic' ? 'calm' : 'confident'); }
+function warmKey(p){ return p.warm>0.12 ? 'warm' : (p.warm<-0.12 ? 'cool' : 'neutral'); }
+function personaFor(p, match){
+  if(!p) return match.persona;
+  return PERSONAS[warmKey(p)][vibeKey(p)][p.gender==='male'?'m':'f'];
+}
+function whyFor(p, match){
+  const w = p && match.whys && match.whys[vibeKey(p)];
+  if(!w) return match.why;
+  if(typeof w==='string') return w;
+  return (p.gender==='male' && w.m) ? w.m : w.any;
+}
+function matchScore(p, match){
+  if(!p) return 90 + Math.round(rng()*6); // no face read → still a strong number
+  const t = TONE[match.colour] || {warm:0, light:0.5};
+  const close = 1 - Math.min(1, (Math.abs(p.warm-t.warm) + 0.8*Math.abs(p.lightAxis-t.light)) / 1.8);
+  return Math.max(88, Math.min(97, Math.round(88 + close*9)));
+}
+function countScore(target){
+  const el=document.getElementById('rScore'); const t0=performance.now(), dur=1100;
+  function step(t){ const k=Math.min(1,(t-t0)/dur), e=1-Math.pow(1-k,3);
+    el.textContent=Math.round(e*target); if(k<1) requestAnimationFrame(step); }
+  el.textContent='0'; requestAnimationFrame(step);
+}
+function confetti(){
+  const host=document.getElementById('result');
+  const old=host.querySelector('.cfbox'); if(old) old.remove();
+  const box=document.createElement('div'); box.className='cfbox';
+  const cols=['#F56A19','#FFC24B','#FBF49E','#C3E4F7','#CBB9E8','#37304a']; // brand palette only
+  for(let i=0;i<26;i++){ const c=document.createElement('i'); c.className='cf';
+    c.style.left=(Math.random()*100)+'%'; c.style.background=cols[i%cols.length];
+    c.style.animationDelay=(Math.random()*0.6)+'s'; c.style.animationDuration=(1.7+Math.random()*1.2)+'s';
+    box.appendChild(c); }
+  host.appendChild(box); setTimeout(()=>box.remove(), 3800);
+}
 function showResult(match){
   if(!match){ document.getElementById('pSent').textContent='✉ Sent to '+state.email;
     kEvent("Perfect Pairing No Match", {size:state.size, store:state.storeName||'', points:300});
     go('points'); return; }
+  const p=state._profile;
+  const persona=personaFor(p, match), score=matchScore(p, match);
+  document.getElementById('rPersona').textContent=persona;
   document.getElementById('rImg').src=match.img;
   document.getElementById('rName').textContent=match.name;
   document.getElementById('rCol').textContent=match.colour+' · in your size '+state.size+' ✓';
-  const p=state._profile;
-  document.getElementById('rWhy').textContent = p ? ('Your '+p.undertone.toLowerCase()+' + '+p.vibe.toLowerCase()+' read → this '+match.colour+' '+match.name+'.') : match.why;
+  document.getElementById('rWhy').textContent=whyFor(p, match);
+  document.getElementById('rKick').textContent=KICKER;
+  document.getElementById('rFate').innerHTML='<span class="k">✦</span> Of every pair '+(state.storeName?'at '+state.storeName:'in this store')+', this one was waiting in your size '+state.size+'.';
   document.getElementById('rDeal').textContent='$'+match.deal.toFixed(2);
   document.getElementById('rRrp').textContent='$'+match.rrp.toFixed(2);
   document.getElementById('rSent').textContent='✉ Sent to '+state.email;
   // Redemption is IN-STORE only (no delivery). When live per-store stock is wired, matching is gated to the staff's store so collect is always possible; no store-stock in their size → +300 points.
   const stk=document.getElementById('rStk'), cta=document.getElementById('rCta');
   const at = state.storeName ? (' at '+state.storeName) : ' in store';
-  stk.className='stk here'; stk.innerHTML='<span class="pip"></span> Available'+at+' — collect at the counter';
+  stk.className='stk here rv d5'; stk.innerHTML='<span class="pip"></span> Available'+at+' — collect at the counter';
   cta.textContent='Redeem now – collect in store  →';
   cta.onclick=()=>alert('→ Staff keys the 50% at POS for '+match.name+' '+match.colour+' (size '+state.size+') — collect at the counter. POS set up by Quynh.');
   kEvent("Perfect Pairing Matched", {shoe:match.name, colour:match.colour, size:state.size, deal:match.deal, rrp:match.rrp, store:state.storeName||'',
+    persona:persona, score:score, // → the congrats email can reuse the persona + score
     img:(function(){ try{ return new URL(match.img, location.href).href; }catch(e){ return ''; } })()}); // absolute URL of the matched shoe → email renders the real pair
   go('result');
+  const rs=document.getElementById('result');
+  rs.classList.remove('play'); void rs.offsetWidth; rs.classList.add('play'); // restart the reveal every time
+  countScore(score); confetti();
 }
 function reset(){ stopCam();
+  document.getElementById('result').classList.remove('play');
   const sn=document.getElementById('snapImg'); if(sn){ sn.src=''; sn.style.display='none'; }
   const ff2=document.getElementById('faceFallback2'); if(ff2) ff2.style.display='';
   const keepStore=state.store, keepName=state.storeName;
