@@ -600,7 +600,7 @@ function showResult(match){
   document.getElementById('rFate').innerHTML='<span class="k">✦</span> Of every pair '+(state.storeName?'at '+state.storeName:'in this store')+', this one was waiting in your size '+state.size+'.';
   document.getElementById('rDeal').textContent='$'+match.deal.toFixed(2);
   document.getElementById('rRrp').textContent='$'+match.rrp.toFixed(2);
-  document.getElementById('rSent').textContent='✉ Sent to '+state.email;
+  document.getElementById('rSent').textContent='✦ Match saved to '+state.email;
   // Redemption is IN-STORE only (no delivery). When live per-store stock is wired, matching is gated to the staff's store so collect is always possible; no store-stock in their size → +300 points.
   const stk=document.getElementById('rStk'), cta=document.getElementById('rCta');
   const at = state.storeName ? (' at '+state.storeName) : ' in store';
@@ -625,6 +625,7 @@ async function redeem(match, cta, stk){
     const j=await r.json();
     if(j.ok){
       stockCache=null; // stock moved — next customer refetches
+      kEvent("Perfect Pairing Redeemed", {shoe:match.name, colour:match.colour, size:state.size, store:state.storeName||'', redeemId:j.redeemId}); // suppresses the follow-up 50%-online email
       stk.className='stk here'; stk.innerHTML='<span class="pip"></span> Redeemed ✓ '+j.redeemId+' — staff keys the 50% at POS';
       cta.textContent='Redeemed ✓ — collect at the counter';
     } else if(j.error==='out_of_stock'){
