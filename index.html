@@ -268,51 +268,51 @@
 </div>
 
 <script>
-const IMG = {
-  runnerTan:"images/balance-runner-natural-tan.png",
-  runnerSakura:"images/balance-runner-sakura.png",
-  walkerTan:"images/balance-walker-natural-tan.png",
-  elevateWhite:"images/elevate-walker-white.png",
-  elevateBlack:"images/elevate-walker-black.png",
-  spaceBlack:"images/space-runner-velvet-black.png"
-};
-// sizes{} = real warehouse stock from Inventory sheet (O3mNsPtR · tab pZsY5Q), snapshot 28 Jun 2026 19:07. Refresh before launch.
-const STYLES = [
- {name:"Balance Runner", colour:"Natural Tan", img:IMG.runnerTan, rrp:135, deal:67.50, sizes:{35:42,36:63,37:260,38:229,39:7,46:1},
-  why:"Your warm-neutral, easy-going vibe → this clean tonal sneaker.", chips:["Easy Minimalist","Warm Neutrals","Everyday Walker"]},
- {name:"Balance Runner", colour:"Sakura", img:IMG.runnerSakura, rrp:135, deal:67.50, sizes:{35:1,41:1,42:102},
-  why:"Your soft, playful side → this gentle blush runner.", chips:["Soft & Playful","Blush Tones","Light Steps"]},
- {name:"Balance Walker", colour:"Natural Tan", img:IMG.walkerTan, rrp:125, deal:62.50, sizes:{35:19,36:67,37:61,38:73},
-  why:"Your classic, fuss-free style → this tonal everyday walker.", chips:["Quiet Classic","Sandy Neutrals","All-Day Ease"]},
- {name:"Elevate Lace-up Walker", colour:"White", img:IMG.elevateWhite, rrp:145, deal:72.50, sizes:{35:6,36:27,37:45,38:100,39:62,41:2},
-  why:"Your fresh, sporty energy → this crisp white lace-up.", chips:["Fresh & Sporty","Clean Whites","Active Days"]},
- {name:"Elevate Lace-up Walker", colour:"Black", img:IMG.elevateBlack, rrp:145, deal:72.50, sizes:{35:8,37:28,39:10,40:65,41:22,42:33,43:9,44:7,45:1},
-  why:"Your sleek, go-anywhere style → this versatile black lace-up.", chips:["Sleek & Versatile","Monochrome","Move Fast"]},
- {name:"Balance Space Runner", colour:"Velvet Full Black", img:IMG.spaceBlack, rrp:145, deal:72.50, sizes:{35:14,36:28,37:46,38:25},
-  why:"Your bold, plush taste → this velvet statement runner.", chips:["Bold & Plush","Velvet Black","Statement Steps"]}
-];
-let state = { size:null, email:"jane@email.com", storeStock:null, forced:null, _k:0, camOn:false, _profile:null, store:null, storeName:null };
-// SG retail stores (value = Shopline location_id → used for the live per-store stock check later)
+// ---- Live stock + catalog from the Perfect Pairing API (Deno Deploy → "AI Foot Scan" Lark workbook). ----
+// Source tabs are never mutated; each redeem appends to the Redemptions log and nets off live stock.
+const API_BASE = "https://the-perfect-pairing-api.winita-ai.deno.net";
+// id = store name EXACTLY as the workbook tab / API expects it
 const STORES = [
-  {id:"5865050260003101895", name:"ION Orchard"},
-  {id:"5864830361855095228", name:"VivoCity"},
-  {id:"5864830428460621090", name:"Jurong Point"},
-  {id:"5865050277317188812", name:"NEX"},
-  {id:"5865050201836495203", name:"Bugis Junction"},
-  {id:"7175211961331530934", name:"Causeway Point"},
-  {id:"6059065582442803050", name:"Westgate"},
-  {id:"5865050285538025846", name:"Tampines Mall"},
-  {id:"6244689029083438751", name:"Chinatown Point"},
-  {id:"CHANGI_T4_LOCATION_ID_TBD", name:"Changi T4"} // TODO: real Shopline location_id before live stock check is wired
+  {id:"ION Orchard", name:"ION Orchard"},
+  {id:"VivoCity", name:"VivoCity"},
+  {id:"Jurong Point", name:"Jurong Point"},
+  {id:"NEX", name:"NEX"},
+  {id:"Bugis Junction", name:"Bugis Junction"},
+  {id:"Causeway Point - New", name:"Causeway Point"},
+  {id:"Westgate", name:"Westgate"},
+  {id:"Tampines Mall", name:"Tampines Mall"},
+  {id:"Chinatown Point", name:"Chinatown Point"},
+  {id:"Square 2", name:"Square 2"},
+  {id:"T4 Departure Hall", name:"T4 Departure Hall"}
 ];
-// per-colour tone targets (warm axis -1..1, light 0..1, vibe) — the on-device face read maps to the nearest
-const TONE = {
-  "Natural Tan":       {warm: 0.85, light:0.55, vibe:'classic'},
-  "Sakura":            {warm: 0.55, light:0.82, vibe:'playful'},
-  "White":             {warm:-0.60, light:0.85, vibe:'fresh'},
-  "Black":             {warm: 0.00, light:0.16, vibe:'sleek'},
-  "Velvet Full Black": {warm:-0.20, light:0.14, vibe:'bold'}
+let state = { size:null, email:"jane@email.com", forced:null, _k:0, camOn:false, _profile:null, store:null, storeName:null };
+// live per-store stock (source − redemptions), fetched on store select + refreshed per customer
+let stockCache=null, stockFetch=null;
+function fetchStock(){
+  if(!state.store) return Promise.resolve(null);
+  if(stockCache) return Promise.resolve(stockCache);
+  if(!stockFetch){
+    stockFetch = fetch(API_BASE+"/stock?store="+encodeURIComponent(state.store))
+      .then(r=>r.json())
+      .then(j=>{ stockCache=(j.colourways||[]).map(c=>({
+          name:c.design, colour:c.colour, img:"images/"+c.image, rrp:c.rrp||99, deal:c.deal||(c.rrp?c.rrp/2:49.5),
+          sizes:c.sizes||{}, tone:c.tone||{warm:0,light:0.5,vibe:"classic"}
+        })); return stockCache; })
+      .catch(e=>{ console.warn("stock fetch failed", e); return null; })
+      .finally(()=>{ stockFetch=null; });
+  }
+  return stockFetch;
+}
+// vibe → result copy (matches catalog tone.vibe values)
+const VIBE_COPY = {
+  classic:{why:"Your classic, fuss-free style → this {shoe}.", chips:["Quiet Classic","Warm Neutrals","All-Day Ease"]},
+  playful:{why:"Your soft, playful side → this {shoe}.", chips:["Soft & Playful","Fresh Pop","Light Steps"]},
+  fresh:{why:"Your fresh, sporty energy → this {shoe}.", chips:["Fresh & Sporty","Clean & Crisp","Active Days"]},
+  sleek:{why:"Your sleek, go-anywhere style → this {shoe}.", chips:["Sleek & Versatile","Monochrome","Move Fast"]},
+  bold:{why:"Your bold, statement taste → this {shoe}.", chips:["Bold & Plush","Velvet Depth","Statement Steps"]}
 };
+function copyFor(s){ const v=VIBE_COPY[(s.tone&&s.tone.vibe)||"classic"]||VIBE_COPY.classic;
+  return { why:v.why.replace("{shoe}", s.colour+" "+s.name), chips:v.chips }; }
 const grid = document.getElementById('sizeGrid');
 for(let s=35;s<=46;s++){ const d=document.createElement('div'); d.className='sz'; d.textContent=s;
   d.onclick=()=>{ state.size=s; [...grid.children].forEach(c=>c.classList.remove('sel')); d.classList.add('sel'); check(); }; grid.appendChild(d); }
@@ -383,7 +383,7 @@ function pickMatch(eligible, pr){
   let best=null, bs=-1e9;
   eligible.forEach(s=>{
     let sc = CLEAR_W * ((s.sizes[sz]||0)/maxS);            // clear the deepest stock first
-    if(pr){ const t=TONE[s.colour]||{warm:0,light:0.5,vibe:'classic'};
+    if(pr){ const t=s.tone||{warm:0,light:0.5,vibe:'classic'};
       sc += -( Math.abs(pr.warm-t.warm) + 0.8*Math.abs(pr.lightAxis-t.light) );
       if(pr.happy && t.vibe==='playful') sc+=0.35;
       if(!pr.happy && (t.vibe==='sleek'||t.vibe==='bold'||t.vibe==='classic')) sc+=0.15;
@@ -393,7 +393,9 @@ function pickMatch(eligible, pr){
   return best;
 }
 async function analyse(){
-  const eligible = STYLES.filter(s=>(s.sizes[state.size]||0)>0);
+  const stock = await fetchStock();
+  if(!stock){ alert("Couldn't load live stock — check the internet connection, then tap scan again."); return; }
+  const eligible = stock.filter(s=>(s.sizes[state.size]||0)>0);
   let profile=null, cv=null, ctx=null;
   // capture the frame while the camera screen is still live
   if(state.camOn && state.forced!=='no'){
@@ -416,7 +418,7 @@ async function analyse(){
   let match=null;
   if(state.forced==='no') match=null;
   else if(eligible.length) match=pickMatch(eligible, profile); // clearance-skewed (works with or without a face read)
-  const set = profile?profile.chips:(match?match.chips:["Reading vibe","Reading palette","Reading energy"]);
+  const set = profile?profile.chips:(match?copyFor(match).chips:["Reading vibe","Reading palette","Reading energy"]);
   ['fc0','fc1','fc2'].forEach((id,i)=>{ const el=document.getElementById(id);
     el.classList.remove('show'); el.innerHTML='<span class="k">✦</span> '+(set[i]||'');
     setTimeout(()=>el.classList.add('show'), 550+i*480); });
@@ -447,7 +449,7 @@ function showResult(match){
   document.getElementById('rName').textContent=match.name;
   document.getElementById('rCol').textContent=match.colour+' · in your size '+state.size+' ✓';
   const p=state._profile;
-  document.getElementById('rWhy').textContent = p ? ('Your '+p.undertone.toLowerCase()+' + '+p.vibe.toLowerCase()+' read → this '+match.colour+' '+match.name+'.') : match.why;
+  document.getElementById('rWhy').textContent = p ? ('Your '+p.undertone.toLowerCase()+' + '+p.vibe.toLowerCase()+' read → this '+match.colour+' '+match.name+'.') : copyFor(match).why;
   document.getElementById('rDeal').textContent='$'+match.deal.toFixed(2);
   document.getElementById('rRrp').textContent='$'+match.rrp.toFixed(2);
   document.getElementById('rSent').textContent='✉ Sent to '+state.email;
@@ -455,17 +457,40 @@ function showResult(match){
   const stk=document.getElementById('rStk'), cta=document.getElementById('rCta');
   const at = state.storeName ? (' at '+state.storeName) : ' in store';
   stk.className='stk here'; stk.innerHTML='<span class="pip"></span> Available'+at+' — collect at the counter';
+  cta.disabled=false;
   cta.textContent='Redeem now – collect in store  →';
-  cta.onclick=()=>alert('→ Staff keys the 50% at POS for '+match.name+' '+match.colour+' (size '+state.size+') — collect at the counter. POS set up by Quynh.');
+  cta.onclick=()=>redeem(match, cta, stk);
   kEvent("Perfect Pairing Matched", {shoe:match.name, colour:match.colour, size:state.size, deal:match.deal, rrp:match.rrp, store:state.storeName||'',
     img:(function(){ try{ return new URL(match.img, location.href).href; }catch(e){ return ''; } })()}); // absolute URL of the matched shoe → email renders the real pair
   go('result');
+}
+// Logs the redemption (appends to the workbook's Redemptions tab + decrements live stock). 50% is keyed at POS — no code.
+async function redeem(match, cta, stk){
+  cta.disabled=true; cta.textContent='Logging redemption…';
+  try{
+    const r=await fetch(API_BASE+"/redeem",{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({store:state.store, design:match.name, colour:match.colour, size:String(state.size), email:state.email})});
+    const j=await r.json();
+    if(j.ok){
+      stockCache=null; // stock moved — next customer refetches
+      stk.className='stk here'; stk.innerHTML='<span class="pip"></span> Redeemed ✓ '+j.redeemId+' — staff keys the 50% at POS';
+      cta.textContent='Redeemed ✓ — collect at the counter';
+    } else if(j.error==='out_of_stock'){
+      stockCache=null;
+      alert('That size was just claimed by another customer — tap OK to rescan with live stock.');
+      reset();
+    } else { throw new Error(j.error||'redeem failed'); }
+  }catch(e){ console.warn('redeem failed', e);
+    cta.disabled=false; cta.textContent='Redeem now – collect in store  →';
+    alert("Couldn't log the redemption — check the internet connection and tap Redeem again.");
+  }
 }
 function reset(){ stopCam();
   const sn=document.getElementById('snapImg'); if(sn){ sn.src=''; sn.style.display='none'; }
   const ff2=document.getElementById('faceFallback2'); if(ff2) ff2.style.display='';
   const keepStore=state.store, keepName=state.storeName;
-  state={size:null,email:document.getElementById('email').value||'jane@email.com',storeStock:null,forced:null,_k:0,camOn:false,_profile:null,store:keepStore,storeName:keepName};
+  state={size:null,email:document.getElementById('email').value||'jane@email.com',forced:null,_k:0,camOn:false,_profile:null,store:keepStore,storeName:keepName};
+  stockCache=null; fetchStock(); // refresh live stock for the next customer
   [...grid.children].forEach(c=>c.classList.remove('sel')); check(); go('welcome'); } // store persists → straight back to welcome for the next customer
 function forceNo(){ state.forced='no'; alert('Demo: next scan returns no match → 300 points'); }
 // ---- store gate (staff picks once; persists across customers + reloads) ----
@@ -477,10 +502,10 @@ function applyStore(){ const s=STORES.find(x=>x.id===state.store);
   document.getElementById('chipName').textContent=s?s.name:'Choose store';
   try{ if(state.store) localStorage.setItem('pp_store',state.store); else localStorage.removeItem('pp_store'); }catch(e){}
   renderStores(); }
-function chooseStore(id){ state.store=id; applyStore(); go('welcome'); }
+function chooseStore(id){ state.store=id; applyStore(); stockCache=null; fetchStock(); go('welcome'); }
 try{ const sv=localStorage.getItem('pp_store'); if(sv && STORES.some(s=>s.id===sv)){ state.store=sv; } }catch(e){}
 applyStore();
-if(state.store) go('welcome'); // already set today → skip the gate
+if(state.store){ fetchStock(); go('welcome'); } // already set today → skip the gate + warm the stock cache
 check();
 window.addEventListener('load', ()=>{ setTimeout(loadFace, 300); }); // warm up models on the device
 </script>
