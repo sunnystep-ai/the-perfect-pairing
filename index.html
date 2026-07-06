@@ -608,9 +608,13 @@ function showResult(match){
   cta.disabled=false;
   cta.textContent='Redeem now – collect in store  →';
   cta.onclick=()=>redeem(match, cta, stk);
-  kEvent("Perfect Pairing Matched", {shoe:match.name, colour:match.colour, size:state.size, deal:match.deal, rrp:match.rrp, store:state.storeName||'',
-    persona:persona, score:score, // → the congrats email can reuse the persona + score
-    img:(function(){ try{ return new URL(match.img, location.href).href; }catch(e){ return ''; } })()}); // absolute URL of the matched shoe → email renders the real pair
+  // Fire the match server-side: the backend mints a UNIQUE single-use 50%-off code and attaches it to the
+  // "Perfect Pairing Matched" event, so the "didn't redeem" recovery email carries a personal, un-shareable code.
+  fetch(API_BASE+"/match",{method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({email:state.email, shoe:match.name, colour:match.colour, size:state.size,
+      deal:match.deal, rrp:match.rrp, store:state.storeName||'', persona:persona, score:score,
+      img:(function(){ try{ return new URL(match.img, location.href).href; }catch(e){ return ''; } })()})
+  }).catch(e=>console.warn('match event failed', e));
   go('result');
   const rs=document.getElementById('result');
   rs.classList.remove('play'); void rs.offsetWidth; rs.classList.add('play'); // restart the reveal every time
