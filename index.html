@@ -123,11 +123,6 @@
   .ring .inner{ width:122px;height:122px;border-radius:50%; background:#fff; display:flex;align-items:center;justify-content:center;flex-direction:column; }
   .ring .big{ font-size:40px; font-weight:900; color:var(--orange); line-height:1; }
   .ring .lbl{ font-size:12px; font-weight:800; color:var(--muted); margin-top:3px; }
-  /* demo */
-  .demo{ position:absolute; left:0; right:0; bottom:38px; background:rgba(21,19,28,.92); color:#cfc9da; font-size:11px;
-         display:flex; gap:7px; align-items:center; padding:8px 14px; }
-  .demo b{ color:#fff; } .demo button{ background:#2c2740; color:#fff; border:none; border-radius:9px; padding:6px 9px; font-size:11px; font-weight:800; cursor:pointer; }
-  .demo .on{ background:var(--orange); }
   .cam{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; transform:scaleX(-1); background:#0c0b10; }
   .snapimg{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; transform:scaleX(-1); }
   .camhint{ position:absolute; left:0; right:0; bottom:10px; text-align:center; color:#fff; font-size:12px; font-weight:800; letter-spacing:.3px; text-shadow:0 1px 6px rgba(0,0,0,.55); pointer-events:none; }
@@ -286,12 +281,6 @@
     <button class="btn ghost" onclick="reset()">Done — next customer</button>
   </section>
 
-  <!-- demo controls -->
-  <div class="demo">
-    <b>demo</b>
-    <button onclick="forceNo()">force no-match</button>
-    <span style="margin-left:auto;opacity:.65">on-device read · never stored</span>
-  </div>
 </div>
 
 <script>
@@ -656,7 +645,6 @@ function reset(){ stopCam();
   state={size:null,email:document.getElementById('email').value||'jane@email.com',forced:null,_k:0,camOn:false,_profile:null,store:keepStore,storeName:keepName};
   stockCache=null; fetchStock(); // refresh live stock for the next customer
   [...grid.children].forEach(c=>c.classList.remove('sel')); check(); go('welcome'); } // store persists → straight back to welcome for the next customer
-function forceNo(){ state.forced='no'; alert('Demo: next scan returns no match → 300 points'); }
 // ---- store gate (staff picks once; persists across customers + reloads) ----
 const storeList=document.getElementById('storeList');
 function renderStores(){ storeList.innerHTML=STORES.map(s=>
