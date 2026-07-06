@@ -630,8 +630,8 @@ async function redeem(match, cta, stk){
     if(j.ok){
       stockCache=null; // stock moved — next customer refetches
       kEvent("Perfect Pairing Redeemed", {shoe:match.name, colour:match.colour, size:state.size, store:state.storeName||'', redeemId:j.redeemId}); // suppresses the follow-up 50%-online email
-      stk.className='stk here'; stk.innerHTML='<span class="pip"></span> Redeemed ✓ '+j.redeemId+' — staff keys the 50% at POS';
-      cta.textContent='Redeemed ✓ — collect at the counter';
+      stk.className='stk here'; stk.innerHTML='<span class="pip"></span> Thank you! 🧡';
+      cta.textContent='Thank you 🧡';
     } else if(j.error==='out_of_stock'){
       stockCache=null;
       alert('That size was just claimed by another customer — tap OK to rescan with live stock.');
