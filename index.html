@@ -295,41 +295,67 @@
 </div>
 
 <script>
-const IMG = {
-  runnerTan:"images/balance-runner-natural-tan.png",
-  runnerSakura:"images/balance-runner-sakura.png",
-  walkerTan:"images/balance-walker-natural-tan.png",
-  elevateWhite:"images/elevate-walker-white.png",
-  elevateBlack:"images/elevate-walker-black.png",
-  spaceBlack:"images/space-runner-velvet-black.png"
-};
-// sizes{} = real warehouse stock from Inventory sheet (O3mNsPtR · tab pZsY5Q), snapshot 28 Jun 2026 19:07. Refresh before launch.
+// ---- Live stock + catalog from the Perfect Pairing API (Deno Deploy → "AI Foot Scan" Lark workbook). ----
+// Source tabs are never mutated; each redeem appends to the Redemptions log and nets off live stock.
+const API_BASE = "https://the-perfect-pairing-api.winita-ai.deno.net";
+// id = store name EXACTLY as the workbook tab / API expects it
+const STORES = [
+  {id:"ION Orchard", name:"ION Orchard"},
+  {id:"VivoCity", name:"VivoCity"},
+  {id:"Jurong Point", name:"Jurong Point"},
+  {id:"NEX", name:"NEX"},
+  {id:"Bugis Junction", name:"Bugis Junction"},
+  {id:"Causeway Point - New", name:"Causeway Point"},
+  {id:"Westgate", name:"Westgate"},
+  {id:"Tampines Mall", name:"Tampines Mall"},
+  {id:"Chinatown Point", name:"Chinatown Point"},
+  {id:"Square 2", name:"Square 2"},
+  {id:"T4 Departure Hall", name:"T4 Departure Hall"}
+];
+// live per-store stock (source − redemptions), fetched on store select + refreshed per customer
+let stockCache=null, stockFetch=null;
+function fetchStock(){
+  if(!state.store) return Promise.resolve(null);
+  if(stockCache) return Promise.resolve(stockCache);
+  if(!stockFetch){
+    stockFetch = fetch(API_BASE+"/stock?store="+encodeURIComponent(state.store))
+      .then(r=>r.json())
+      .then(j=>{ stockCache=(j.colourways||[]).map(c=>({
+          name:c.design, colour:c.colour, img:"images/"+c.image, rrp:c.rrp||99, deal:c.deal||(c.rrp?c.rrp/2:49.5),
+          sizes:c.sizes||{}, tone:c.tone||{warm:0,light:0.5,vibe:"classic"}
+        })); return stockCache; })
+      .catch(e=>{ console.warn("stock fetch failed", e); return null; })
+      .finally(()=>{ stockFetch=null; });
+  }
+  return stockFetch;
+}
+// CURATED = hand-written emotional copy for the hero capsule styles, keyed "design||colour".
 // persona = fallback identity when the face read fails (persona is otherwise picked from the read, see PERSONAS)
 // whys = emotional match reason per vibe read; a string, or {any, m} when a male read deserves different flavour.
 // Gender is NEVER shown back to the customer — it only tunes tone of voice.
-const STYLES = [
- {name:"Balance Runner", colour:"Natural Tan", img:IMG.runnerTan, rrp:135, deal:67.50, sizes:{35:42,36:63,37:260,38:229,39:7,46:1},
+const CURATED_SRC = [
+ {name:"Balance Runner", colour:"Natural Tan",
   why:"Warm, easy, goes with everything — Natural Tan is the pair the rest of your wardrobe has been waiting for.",
   persona:"The Everyday Original", chips:["Easy Minimalist","Warm Neutrals","Everyday Walker"],
   whys:{
    calm:"The scan read you warm and unhurried — someone who moves through the day on their own rhythm. Natural Tan doesn't ask for attention. It just goes everywhere you do.",
    playful:"There's an easy warmth the camera caught straight away. Natural Tan is that energy in a shoe — relaxed, sunny, up for wherever the day wanders.",
    confident:"You read as someone who keeps it simple on purpose. Natural Tan is the quiet flex — one clean tone that works with everything you already own."}},
- {name:"Balance Runner", colour:"Sakura", img:IMG.runnerSakura, rrp:135, deal:67.50, sizes:{35:1,41:1,42:102},
+ {name:"Balance Runner", colour:"Sakura",
   why:"Soft, light, a little bit of blush in every step — Sakura lifts the simplest outfit.",
   persona:"The Soft Optimist", chips:["Soft & Playful","Blush Tones","Light Steps"],
   whys:{
    calm:"Underneath the calm, the scan caught something soft and light. Sakura is that feeling in a shoe — a gentle blush that lifts the simplest outfit.",
    playful:"There's a brightness the camera caught straight away. Sakura is that feeling in a shoe — soft, light, a little bit of blush in every step.",
    confident:"You read sure of yourself — which is exactly who wears Sakura best. A soft blush runner only works when you're not trying too hard. You're not."}},
- {name:"Balance Walker", colour:"Natural Tan", img:IMG.walkerTan, rrp:125, deal:62.50, sizes:{35:19,36:67,37:61,38:73},
+ {name:"Balance Walker", colour:"Natural Tan",
   why:"One warm sandy tone, soft underfoot, zero fuss — the walker that works with everything.",
   persona:"The Quiet Classic", chips:["Quiet Classic","Sandy Neutrals","All-Day Ease"],
   whys:{
    calm:"The scan read you easy and classic — no fuss, no noise. This Natural Tan walker is the same: one warm tone, soft underfoot, good with everything.",
    playful:"The camera caught a warm, easygoing energy. This Natural Tan walker matches it — light, friendly, made for long wandering days.",
    confident:"You read as someone who's already sorted — so here's the shoe version of that. A clean Natural Tan walker that never overthinks it and never lets you down."}},
- {name:"Elevate Lace-up Walker", colour:"White", img:IMG.elevateWhite, rrp:145, deal:72.50, sizes:{35:6,36:27,37:45,38:100,39:62,41:2},
+ {name:"Elevate Lace-up Walker", colour:"White",
   why:"Crisp, fresh and impossible to get wrong — a clean White lace-up is the easiest yes.",
   persona:"The Fresh Start", chips:["Fresh & Sporty","Clean Whites","Active Days"],
   whys:{
@@ -337,7 +363,7 @@ const STYLES = [
    playful:"There's a bright, up-for-anything energy the camera caught immediately. Crisp White keeps up — fresh, sporty, ready to be out all day.",
    confident:{any:"You read cool and collected — and nothing backs that up like a clean White sneaker. Sharp without shouting.",
               m:"You read cool and collected — and nothing backs that up like a clean White sneaker. Sharp for work, easy for everything after."}}},
- {name:"Elevate Lace-up Walker", colour:"Black", img:IMG.elevateBlack, rrp:145, deal:72.50, sizes:{35:8,37:28,39:10,40:65,41:22,42:33,43:9,44:7,45:1},
+ {name:"Elevate Lace-up Walker", colour:"Black",
   why:"Sleek, versatile, never off-duty — the Black lace-up that goes everywhere you do.",
   persona:"The All-Rounder", chips:["Sleek & Versatile","Monochrome","Move Fast"],
   whys:{
@@ -345,7 +371,7 @@ const STYLES = [
          m:"The scan read you sleek and steady — someone who moves through the day without fuss. Black Elevate does both shifts: dress it up, run it down."},
    playful:"Big bright energy — grounded by the one shoe that goes with all of it. Black Elevate lets the rest of you do the talking.",
    confident:"You read as someone who's already decided where they're going. Black Elevate keeps up — sleek, sure, zero fuss."}},
- {name:"Balance Space Runner", colour:"Velvet Full Black", img:IMG.spaceBlack, rrp:145, deal:72.50, sizes:{35:14,36:28,37:46,38:25},
+ {name:"Balance Space Runner", colour:"Velvet Full Black",
   why:"Plush velvet, deep black, quietly dramatic — a statement you can walk all day in.",
   persona:"The Night Mover", chips:["Bold & Plush","Velvet Black","Statement Steps"],
   whys:{
@@ -353,28 +379,45 @@ const STYLES = [
    playful:"The camera caught a spark — someone who likes a little drama in the details. Velvet Full Black delivers: plush, deep, unmistakably you.",
    confident:"You read bold — the kind who doesn't need colour to stand out. Velvet Full Black agrees: all depth, all presence."}}
 ];
-let state = { size:null, email:"jane@email.com", storeStock:null, forced:null, _k:0, camOn:false, _profile:null, store:null, storeName:null };
-// SG retail stores (value = Shopline location_id → used for the live per-store stock check later)
-const STORES = [
-  {id:"5865050260003101895", name:"ION Orchard"},
-  {id:"5864830361855095228", name:"VivoCity"},
-  {id:"5864830428460621090", name:"Jurong Point"},
-  {id:"5865050277317188812", name:"NEX"},
-  {id:"5865050201836495203", name:"Bugis Junction"},
-  {id:"7175211961331530934", name:"Causeway Point"},
-  {id:"6059065582442803050", name:"Westgate"},
-  {id:"5865050285538025846", name:"Tampines Mall"},
-  {id:"6244689029083438751", name:"Chinatown Point"},
-  {id:"CHANGI_T4_LOCATION_ID_TBD", name:"Changi T4"} // TODO: real Shopline location_id before live stock check is wired
-];
-// per-colour tone targets (warm axis -1..1, light 0..1, vibe) — the on-device face read maps to the nearest
-const TONE = {
-  "Natural Tan":       {warm: 0.85, light:0.55, vibe:'classic'},
-  "Sakura":            {warm: 0.55, light:0.82, vibe:'playful'},
-  "White":             {warm:-0.60, light:0.85, vibe:'fresh'},
-  "Black":             {warm: 0.00, light:0.16, vibe:'sleek'},
-  "Velvet Full Black": {warm:-0.20, light:0.14, vibe:'bold'}
+const CURATED = new Map(CURATED_SRC.map(c=>[(c.name+"||"+c.colour).toLowerCase(), c]));
+// per-vibe fallback copy for the rest of the 45-colourway capsule (matches catalog tone.vibe values)
+const VIBE_COPY = {
+  classic:{persona:"The Quiet Classic", chips:["Quiet Classic","Warm Neutrals","All-Day Ease"],
+    why:"Warm, easy, goes with everything — {shoe} is the pair the rest of your wardrobe has been waiting for.",
+    whys:{calm:"The scan read you warm and unhurried — someone who moves on their own rhythm. {shoe} doesn't ask for attention. It just goes everywhere you do.",
+      playful:"There's an easy warmth the camera caught straight away. {shoe} is that energy in a shoe — relaxed, easy, up for wherever the day wanders.",
+      confident:"You read as someone who keeps it simple on purpose. {shoe} is the quiet flex — clean, considered, works with everything you own."}},
+  playful:{persona:"The Soft Optimist", chips:["Soft & Playful","Fresh Pop","Light Steps"],
+    why:"Soft, light, a little lift in every step — {shoe} brightens the simplest outfit.",
+    whys:{calm:"Underneath the calm, the scan caught something soft and light. {shoe} is that feeling in a shoe — a gentle lift for the simplest outfit.",
+      playful:"There's a brightness the camera caught straight away. {shoe} is that feeling in a shoe — soft, light, a little joy in every step.",
+      confident:"You read sure of yourself — which is exactly who wears {shoe} best. A soft pop only works when you're not trying too hard. You're not."}},
+  fresh:{persona:"The Fresh Start", chips:["Fresh & Sporty","Clean & Crisp","Active Days"],
+    why:"Crisp, fresh and impossible to get wrong — {shoe} is the easiest yes.",
+    whys:{calm:"The scan read you fresh and clear — someone who likes things clean and simple. {shoe} is the easiest yes in your wardrobe.",
+      playful:"There's a bright, up-for-anything energy the camera caught immediately. {shoe} keeps up — fresh, sporty, ready to be out all day.",
+      confident:"You read cool and collected — and nothing backs that up like {shoe}. Sharp without shouting."}},
+  sleek:{persona:"The All-Rounder", chips:["Sleek & Versatile","Monochrome","Move Fast"],
+    why:"Sleek, versatile, never off-duty — {shoe} goes everywhere you do.",
+    whys:{calm:"The scan read you sleek and steady — someone who moves through the day without fuss. {shoe} is the same: goes anywhere, matches everything.",
+      playful:"Big bright energy — grounded by the one shoe that goes with all of it. {shoe} lets the rest of you do the talking.",
+      confident:"You read as someone who's already decided where they're going. {shoe} keeps up — sleek, sure, zero fuss."}},
+  bold:{persona:"The Night Mover", chips:["Bold & Plush","Statement Steps","Main Character"],
+    why:"Deep, plush, quietly dramatic — {shoe} is a statement you can walk all day in.",
+    whys:{calm:"Under the calm, the scan caught a bolder streak. {shoe} is for exactly that — quiet on the surface, a statement up close.",
+      playful:"The camera caught a spark — someone who likes a little drama in the details. {shoe} delivers: plush, deep, unmistakably you.",
+      confident:"You read bold — the kind who doesn't need to shout to stand out. {shoe} agrees: all depth, all presence."}}
 };
+function copyFor(s){
+  const cur = CURATED.get((s.name+"||"+s.colour).toLowerCase());
+  if(cur) return cur;
+  const v = VIBE_COPY[(s.tone&&s.tone.vibe)||"classic"]||VIBE_COPY.classic;
+  const shoe = s.colour+" "+s.name;
+  const sub = t=>t.replace(/\{shoe\}/g, shoe);
+  return { persona:v.persona, chips:v.chips, why:sub(v.why),
+    whys:{calm:sub(v.whys.calm), playful:sub(v.whys.playful), confident:sub(v.whys.confident)} };
+}
+let state = { size:null, email:"jane@email.com", forced:null, _k:0, camOn:false, _profile:null, store:null, storeName:null };
 const grid = document.getElementById('sizeGrid');
 for(let s=35;s<=46;s++){ const d=document.createElement('div'); d.className='sz'; d.textContent=s;
   d.onclick=()=>{ state.size=s; [...grid.children].forEach(c=>c.classList.remove('sel')); d.classList.add('sel'); check(); }; grid.appendChild(d); }
@@ -445,7 +488,7 @@ function pickMatch(eligible, pr){
   let best=null, bs=-1e9;
   eligible.forEach(s=>{
     let sc = CLEAR_W * ((s.sizes[sz]||0)/maxS);            // clear the deepest stock first
-    if(pr){ const t=TONE[s.colour]||{warm:0,light:0.5,vibe:'classic'};
+    if(pr){ const t=s.tone||{warm:0,light:0.5,vibe:'classic'};
       sc += -( Math.abs(pr.warm-t.warm) + 0.8*Math.abs(pr.lightAxis-t.light) );
       if(pr.happy && t.vibe==='playful') sc+=0.35;
       if(!pr.happy && (t.vibe==='sleek'||t.vibe==='bold'||t.vibe==='classic')) sc+=0.15;
@@ -455,7 +498,9 @@ function pickMatch(eligible, pr){
   return best;
 }
 async function analyse(){
-  const eligible = STYLES.filter(s=>(s.sizes[state.size]||0)>0);
+  const stock = await fetchStock();
+  if(!stock){ alert("Couldn't load live stock — check the internet connection, then tap scan again."); return; }
+  const eligible = stock.filter(s=>(s.sizes[state.size]||0)>0);
   let profile=null, cv=null, ctx=null;
   // capture the frame while the camera screen is still live
   if(state.camOn && state.forced!=='no'){
@@ -478,7 +523,7 @@ async function analyse(){
   let match=null;
   if(state.forced==='no') match=null;
   else if(eligible.length) match=pickMatch(eligible, profile); // clearance-skewed (works with or without a face read)
-  const set = profile?profile.chips:(match?match.chips:["Reading vibe","Reading palette","Reading energy"]);
+  const set = profile?profile.chips:(match?copyFor(match).chips:["Reading vibe","Reading palette","Reading energy"]);
   ['fc0','fc1','fc2'].forEach((id,i)=>{ const el=document.getElementById(id);
     el.classList.remove('show'); el.innerHTML='<span class="k">✦</span> '+(set[i]||'');
     setTimeout(()=>el.classList.add('show'), 550+i*480); });
@@ -518,18 +563,19 @@ const KICKER = "Like every Sunnystep, it's tested in MIT Sports Lab — so the p
 function vibeKey(p){ return p.happy ? 'playful' : (p.vibe==='Calm & classic' ? 'calm' : 'confident'); }
 function warmKey(p){ return p.warm>0.12 ? 'warm' : (p.warm<-0.12 ? 'cool' : 'neutral'); }
 function personaFor(p, match){
-  if(!p) return match.persona;
+  if(!p) return copyFor(match).persona;
   return PERSONAS[warmKey(p)][vibeKey(p)][p.gender==='male'?'m':'f'];
 }
 function whyFor(p, match){
-  const w = p && match.whys && match.whys[vibeKey(p)];
-  if(!w) return match.why;
+  const c = copyFor(match);
+  const w = p && c.whys && c.whys[vibeKey(p)];
+  if(!w) return c.why;
   if(typeof w==='string') return w;
   return (p.gender==='male' && w.m) ? w.m : w.any;
 }
 function matchScore(p, match){
   if(!p) return 90 + Math.round(rng()*6); // no face read → still a strong number
-  const t = TONE[match.colour] || {warm:0, light:0.5};
+  const t = match.tone || {warm:0, light:0.5};
   const close = 1 - Math.min(1, (Math.abs(p.warm-t.warm) + 0.8*Math.abs(p.lightAxis-t.light)) / 1.8);
   return Math.max(88, Math.min(97, Math.round(88 + close*9)));
 }
@@ -570,8 +616,9 @@ function showResult(match){
   const stk=document.getElementById('rStk'), cta=document.getElementById('rCta');
   const at = state.storeName ? (' at '+state.storeName) : ' in store';
   stk.className='stk here rv d5'; stk.innerHTML='<span class="pip"></span> Available'+at+' — collect at the counter';
+  cta.disabled=false;
   cta.textContent='Redeem now – collect in store  →';
-  cta.onclick=()=>alert('→ Staff keys the 50% at POS for '+match.name+' '+match.colour+' (size '+state.size+') — collect at the counter. POS set up by Quynh.');
+  cta.onclick=()=>redeem(match, cta, stk);
   kEvent("Perfect Pairing Matched", {shoe:match.name, colour:match.colour, size:state.size, deal:match.deal, rrp:match.rrp, store:state.storeName||'',
     persona:persona, score:score, // → the congrats email can reuse the persona + score
     img:(function(){ try{ return new URL(match.img, location.href).href; }catch(e){ return ''; } })()}); // absolute URL of the matched shoe → email renders the real pair
@@ -580,12 +627,34 @@ function showResult(match){
   rs.classList.remove('play'); void rs.offsetWidth; rs.classList.add('play'); // restart the reveal every time
   countScore(score); confetti();
 }
+// Logs the redemption (appends to the workbook's Redemptions tab + decrements live stock). 50% is keyed at POS — no code.
+async function redeem(match, cta, stk){
+  cta.disabled=true; cta.textContent='Logging redemption…';
+  try{
+    const r=await fetch(API_BASE+"/redeem",{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({store:state.store, design:match.name, colour:match.colour, size:String(state.size), email:state.email})});
+    const j=await r.json();
+    if(j.ok){
+      stockCache=null; // stock moved — next customer refetches
+      stk.className='stk here'; stk.innerHTML='<span class="pip"></span> Redeemed ✓ '+j.redeemId+' — staff keys the 50% at POS';
+      cta.textContent='Redeemed ✓ — collect at the counter';
+    } else if(j.error==='out_of_stock'){
+      stockCache=null;
+      alert('That size was just claimed by another customer — tap OK to rescan with live stock.');
+      reset();
+    } else { throw new Error(j.error||'redeem failed'); }
+  }catch(e){ console.warn('redeem failed', e);
+    cta.disabled=false; cta.textContent='Redeem now – collect in store  →';
+    alert("Couldn't log the redemption — check the internet connection and tap Redeem again.");
+  }
+}
 function reset(){ stopCam();
   document.getElementById('result').classList.remove('play');
   const sn=document.getElementById('snapImg'); if(sn){ sn.src=''; sn.style.display='none'; }
   const ff2=document.getElementById('faceFallback2'); if(ff2) ff2.style.display='';
   const keepStore=state.store, keepName=state.storeName;
-  state={size:null,email:document.getElementById('email').value||'jane@email.com',storeStock:null,forced:null,_k:0,camOn:false,_profile:null,store:keepStore,storeName:keepName};
+  state={size:null,email:document.getElementById('email').value||'jane@email.com',forced:null,_k:0,camOn:false,_profile:null,store:keepStore,storeName:keepName};
+  stockCache=null; fetchStock(); // refresh live stock for the next customer
   [...grid.children].forEach(c=>c.classList.remove('sel')); check(); go('welcome'); } // store persists → straight back to welcome for the next customer
 function forceNo(){ state.forced='no'; alert('Demo: next scan returns no match → 300 points'); }
 // ---- store gate (staff picks once; persists across customers + reloads) ----
@@ -597,10 +666,10 @@ function applyStore(){ const s=STORES.find(x=>x.id===state.store);
   document.getElementById('chipName').textContent=s?s.name:'Choose store';
   try{ if(state.store) localStorage.setItem('pp_store',state.store); else localStorage.removeItem('pp_store'); }catch(e){}
   renderStores(); }
-function chooseStore(id){ state.store=id; applyStore(); go('welcome'); }
+function chooseStore(id){ state.store=id; applyStore(); stockCache=null; fetchStock(); go('welcome'); }
 try{ const sv=localStorage.getItem('pp_store'); if(sv && STORES.some(s=>s.id===sv)){ state.store=sv; } }catch(e){}
 applyStore();
-if(state.store) go('welcome'); // already set today → skip the gate
+if(state.store){ fetchStock(); go('welcome'); } // already set today → skip the gate + warm the stock cache
 check();
 window.addEventListener('load', ()=>{ setTimeout(loadFace, 300); }); // warm up models on the device
 </script>
