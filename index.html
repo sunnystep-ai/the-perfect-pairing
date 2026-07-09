@@ -55,7 +55,7 @@
   .center{ text-align:center; }
   /* details */
   .label{ font-size:12px; font-weight:800; color:var(--muted); text-transform:uppercase; letter-spacing:.7px; margin:4px 2px 8px; }
-  input[type=email]{ width:100%; padding:15px 16px; font-size:16px; border:1px solid #ece7f2; border-radius:16px; background:#fff; color:var(--ink); }
+  input[type=email],input[type=text],input[type=tel]{ width:100%; padding:15px 16px; font-size:16px; border:1px solid #ece7f2; border-radius:16px; background:#fff; color:var(--ink); }
   .sizes{ display:grid; grid-template-columns:repeat(5,1fr); gap:8px; }
   .sz{ padding:13px 0; text-align:center; border:1px solid #ece7f2; border-radius:14px; font-weight:800; cursor:pointer; color:var(--ink); background:#fff; transition:.15s; }
   .sz.sel{ background:linear-gradient(135deg,#5a4b7a,var(--ink)); color:#fff; border-color:transparent; transform:translateY(-1px); box-shadow:0 8px 16px rgba(55,48,74,.3); }
@@ -155,7 +155,7 @@
     .glass{ border-radius:32px; } .pad{ padding:24px; }
     .btn{ font-size:22px; padding:22px; border-radius:38px; }
     .label{ font-size:14px; margin:6px 2px 10px; }
-    input[type=email]{ font-size:20px; padding:19px 18px; border-radius:18px; }
+    input[type=email],input[type=text],input[type=tel]{ font-size:20px; padding:19px 18px; border-radius:18px; }
     .sizes{ gap:12px; } .sz{ padding:20px 0; font-size:20px; border-radius:16px; }
     .consent{ font-size:15px; margin-top:20px; } .consent input{ transform:scale(1.5); }
     .stage{ height:460px; border-radius:30px; }
@@ -204,8 +204,13 @@
   <section id="details" class="screen">
     <div class="wm"><span class="dot"></span> Your details</div>
     <div class="glass pad" style="margin-top:16px">
-      <div class="label">Email</div>
-      <input type="email" id="email" placeholder="customer@email.com" oninput="check()" value="jane@email.com">
+      <div class="label">Name</div>
+      <input type="text" id="cname" placeholder="Customer name" oninput="check()">
+      <div class="label" style="margin-top:16px">Email</div>
+      <input type="email" id="email" placeholder="customer@email.com" oninput="check()">
+      <div class="label" style="margin-top:16px">Phone</div>
+      <input type="tel" id="phone" placeholder="e.g. 9123 4567" oninput="check()">
+      <div style="font-size:12px;color:var(--muted);margin-top:8px;line-height:1.4">No email? A phone number lets us record the membership. Leave all blank to skip — you can still scan.</div>
       <div class="label" style="margin-top:16px">Shoe size</div>
       <div class="sizes" id="sizeGrid"></div>
       <label class="consent"><input type="checkbox" id="consent" onchange="check()" checked>
@@ -264,7 +269,7 @@
     </div>
     <div style="height:24px"></div>
     <button class="btn rv d5" id="rCta"></button>
-    <button class="btn ghost rv d5" style="margin-top:10px" onclick="reset()">Done — next customer</button>
+    <button class="btn ghost rv d5" style="margin-top:10px" onclick="doneMatched()">Done — next customer</button>
   </section>
 
   <!-- 6 · POINTS -->
@@ -274,7 +279,6 @@
       <p class="sub" style="margin-top:2px">The scan couldn't find a match in your size this time — but you're not leaving empty-handed.</p>
       <div class="ring"><div class="inner"><div class="big">+300</div><div class="lbl">POINTS</div></div></div>
       <div style="font-weight:800;color:var(--ink)">Added to your membership</div>
-      <div style="font-size:12.5px;color:var(--muted);margin-top:5px" id="ptsWorth">≈ value pulled from Shopline</div>
       <div class="sent center" id="pSent" style="margin-top:14px"></div>
     </div>
     <div class="spacer"></div>
@@ -406,12 +410,15 @@ function copyFor(s){
   return { persona:v.persona, chips:v.chips, why:sub(v.why),
     whys:{calm:sub(v.whys.calm), playful:sub(v.whys.playful), confident:sub(v.whys.confident)} };
 }
-let state = { size:null, email:"jane@email.com", forced:null, _k:0, camOn:false, _profile:null, store:null, storeName:null };
+let state = { size:null, email:"", name:"", phone:"", forced:null, _k:0, camOn:false, _profile:null, store:null, storeName:null, redeemed:false, logged:false, _match:null };
 const grid = document.getElementById('sizeGrid');
 for(let s=35;s<=46;s++){ const d=document.createElement('div'); d.className='sz'; d.textContent=s;
   d.onclick=()=>{ state.size=s; [...grid.children].forEach(c=>c.classList.remove('sel')); d.classList.add('sel'); check(); }; grid.appendChild(d); }
-function check(){ state.email=document.getElementById('email').value;
-  const ok = state.email.includes('@') && state.size && document.getElementById('consent').checked;
+function check(){ state.email=document.getElementById('email').value.trim();
+  state.name=document.getElementById('cname').value.trim();
+  state.phone=document.getElementById('phone').value.trim();
+  // Name/email/phone are all optional — only a size + PDPA consent gate the scan.
+  const ok = state.size && document.getElementById('consent').checked;
   document.getElementById('scanBtn').disabled=!ok; }
 function go(id){ document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active')); document.getElementById(id).classList.add('active'); }
 function rng(){ state._k=(state._k||(state.size*7+state.email.length)); state._k=(state._k*9301+49297)%233280; return state._k/233280; }
@@ -525,12 +532,13 @@ const KLAVIYO_ID="YrDDH5";
 function kEvent(metric, props){
   try{
     if(!state.email || !state.email.includes('@')) return;
+    const p = Object.assign({name:state.name||'', phone:state.phone||''}, props||{});
     fetch("https://a.klaviyo.com/client/events/?company_id="+KLAVIYO_ID, {
       method:"POST", headers:{"Content-Type":"application/json","revision":"2025-04-15"},
       body:JSON.stringify({data:{type:"event",attributes:{
         metric:{data:{type:"metric",attributes:{name:metric}}},
-        profile:{data:{type:"profile",attributes:{email:state.email}}},
-        properties:props||{}
+        profile:{data:{type:"profile",attributes:{email:state.email, first_name:(state.name||undefined)}}},
+        properties:p
       }}})
     }).catch(e=>console.warn('klaviyo event failed', e));
   }catch(e){ console.warn('klaviyo', e); }
@@ -586,8 +594,10 @@ function confetti(){
   host.appendChild(box); setTimeout(()=>box.remove(), 3800);
 }
 function showResult(match){
-  if(!match){ document.getElementById('pSent').textContent='✉ Sent to '+state.email;
+  state._match = match;
+  if(!match){ document.getElementById('pSent').textContent = state.email ? ('✉ Sent to '+state.email) : (state.phone ? ('✦ Saved to '+state.phone) : '✦ Saved to your membership');
     kEvent("Perfect Pairing No Match", {size:state.size, store:state.storeName||'', points:300});
+    logPoints('No match', '');
     go('points'); return; }
   const p=state._profile;
   const persona=personaFor(p, match), score=matchScore(p, match);
@@ -600,7 +610,7 @@ function showResult(match){
   document.getElementById('rFate').innerHTML='<span class="k">✦</span> Of every pair '+(state.storeName?'at '+state.storeName:'in this store')+', this one was waiting in your size '+state.size+'.';
   document.getElementById('rDeal').textContent='$'+match.deal.toFixed(2);
   document.getElementById('rRrp').textContent='$'+match.rrp.toFixed(2);
-  document.getElementById('rSent').textContent='✦ Match saved to '+state.email;
+  document.getElementById('rSent').textContent = state.email ? ('✦ Match saved to '+state.email) : (state.phone ? ('✦ Match saved to '+state.phone) : '✦ Match saved');
   // Redemption is IN-STORE only (no delivery). When live per-store stock is wired, matching is gated to the staff's store so collect is always possible; no store-stock in their size → +300 points.
   const stk=document.getElementById('rStk'), cta=document.getElementById('rCta');
   const at = state.storeName ? (' at '+state.storeName) : ' in store';
@@ -611,7 +621,7 @@ function showResult(match){
   // Fire the match server-side: the backend mints a UNIQUE single-use 50%-off code and attaches it to the
   // "Perfect Pairing Matched" event, so the "didn't redeem" recovery email carries a personal, un-shareable code.
   fetch(API_BASE+"/match",{method:"POST",headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({email:state.email, shoe:match.name, colour:match.colour, size:state.size,
+    body:JSON.stringify({email:state.email, name:state.name, phone:state.phone, shoe:match.name, colour:match.colour, size:state.size,
       deal:match.deal, rrp:match.rrp, store:state.storeName||'', persona:persona, score:score,
       img:(function(){ try{ return new URL(match.img, location.href).href; }catch(e){ return ''; } })()})
   }).catch(e=>console.warn('match event failed', e));
@@ -625,9 +635,10 @@ async function redeem(match, cta, stk){
   cta.disabled=true; cta.textContent='Logging redemption…';
   try{
     const r=await fetch(API_BASE+"/redeem",{method:"POST",headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({store:state.store, design:match.name, colour:match.colour, size:String(state.size), email:state.email})});
+      body:JSON.stringify({store:state.store, design:match.name, colour:match.colour, size:String(state.size), email:state.email, name:state.name, phone:state.phone})});
     const j=await r.json();
     if(j.ok){
+      state.redeemed=true; // redeemer → goes to Redemptions log, NOT the +300 points list
       stockCache=null; // stock moved — next customer refetches
       kEvent("Perfect Pairing Redeemed", {shoe:match.name, colour:match.colour, size:state.size, store:state.storeName||'', redeemId:j.redeemId}); // suppresses the follow-up 50%-online email
       stk.className='stk here'; stk.innerHTML='<span class="pip"></span> Thank you! 🧡';
@@ -642,12 +653,23 @@ async function redeem(match, cta, stk){
     alert("Couldn't log the redemption — check the internet connection and tap Redeem again.");
   }
 }
+// Log a scan that ended without a redemption → +300 points list (fire-and-forget; only with a contact).
+function logPoints(outcome, shoe){
+  if(state.logged) return; state.logged=true;
+  if(!state.email && !state.phone) return; // no way to reward them
+  try{ fetch(API_BASE+"/pointslog",{method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({store:state.storeName||'', name:state.name, email:state.email, phone:state.phone, size:state.size, outcome:outcome, shoe:shoe})
+  }).catch(e=>console.warn('pointslog failed', e)); }catch(e){ console.warn(e); }
+}
+// Matched screen "Done — next customer": if they never redeemed, they still get +300 points.
+function doneMatched(){ if(!state.redeemed){ const m=state._match; logPoints('Matched — no redeem', (m&&m.name)||''); } reset(); }
 function reset(){ stopCam();
   document.getElementById('result').classList.remove('play');
   const sn=document.getElementById('snapImg'); if(sn){ sn.src=''; sn.style.display='none'; }
   const ff2=document.getElementById('faceFallback2'); if(ff2) ff2.style.display='';
   const keepStore=state.store, keepName=state.storeName;
-  state={size:null,email:document.getElementById('email').value||'jane@email.com',forced:null,_k:0,camOn:false,_profile:null,store:keepStore,storeName:keepName};
+  state={size:null,email:'',name:'',phone:'',forced:null,_k:0,camOn:false,_profile:null,store:keepStore,storeName:keepName,redeemed:false,logged:false,_match:null};
+  ['cname','email','phone'].forEach(id=>{const el=document.getElementById(id); if(el) el.value='';}); // clear inputs for the next customer
   stockCache=null; fetchStock(); // refresh live stock for the next customer
   [...grid.children].forEach(c=>c.classList.remove('sel')); check(); go('welcome'); } // store persists → straight back to welcome for the next customer
 // ---- store gate (staff picks once; persists across customers + reloads) ----
