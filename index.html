@@ -291,6 +291,7 @@
 // ---- Live stock + catalog from the Perfect Pairing API (Deno Deploy → "AI Foot Scan" Lark workbook). ----
 // Source tabs are never mutated; each redeem appends to the Redemptions log and nets off live stock.
 const API_BASE = "https://the-perfect-pairing-api.winita-ai.deno.net";
+const IMG_BASE = "https://sunnystep-ai.github.io/the-perfect-pairing/"; // always resolve shoe images to the PUBLIC url (never file:// when testing locally) so emails show the photo
 // id = store name EXACTLY as the workbook tab / API expects it
 const STORES = [
   {id:"ION Orchard", name:"ION Orchard"},
@@ -623,7 +624,7 @@ function showResult(match){
   fetch(API_BASE+"/match",{method:"POST",headers:{"Content-Type":"application/json"},
     body:JSON.stringify({email:state.email, name:state.name, phone:state.phone, shoe:match.name, colour:match.colour, size:state.size,
       deal:match.deal, rrp:match.rrp, store:state.storeName||'', persona:persona, score:score,
-      img:(function(){ try{ return new URL(match.img, location.href).href; }catch(e){ return ''; } })()})
+      img:(function(){ try{ return new URL(match.img, IMG_BASE).href; }catch(e){ return ''; } })()})
   }).catch(e=>console.warn('match event failed', e));
   go('result');
   const rs=document.getElementById('result');
