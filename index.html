@@ -495,6 +495,7 @@ function pickMatch(eligible, pr){
   return best;
 }
 async function analyse(){
+  stockCache=null; // re-read live stock on EVERY scan — the store tab may have been edited (restock/correction) since the last customer, so never trust a warm cache for the match decision
   const stock = await fetchStock();
   if(!stock){ alert("Couldn't load live stock — check the internet connection, then tap scan again."); return; }
   const eligible = stock.filter(s=>(s.sizes[state.size]||0)>0);
@@ -654,13 +655,34 @@ async function redeem(match, cta, stk){
     alert("Couldn't log the redemption — check the internet connection and tap Redeem again.");
   }
 }
-// Log a scan that ended without a redemption → +300 points list (fire-and-forget; only with a contact).
+// Log a scan that ended without a redemption → +300 points list (only with a contact).
+// Durable + decoupled: the row is queued in localStorage first, then POSTed with retry. A transient
+// network / API blip (or a scan during a redeploy) can no longer silently drop a promised +300 —
+// anything not yet confirmed is re-sent on the next scan and on page load, so the row always lands.
+const PLQ_KEY='pp_pointslog_queue';
+function plqRead(){ try{ return JSON.parse(localStorage.getItem(PLQ_KEY)||'[]'); }catch(e){ return []; } }
+function plqWrite(q){ try{ localStorage.setItem(PLQ_KEY, JSON.stringify(q)); }catch(e){} }
+let plqBusy=false;
+async function flushPointsLog(){
+  if(plqBusy) return; plqBusy=true;
+  try{
+    let q=plqRead(); if(!q.length) return;
+    const keep=[];
+    for(const row of q){
+      try{ const r=await fetch(API_BASE+"/pointslog",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(row)});
+        const j=await r.json().catch(()=>({}));
+        if(!(r.ok && j && j.ok)) keep.push(row); // not confirmed saved → keep it for the next flush
+      }catch(e){ keep.push(row); } // offline / blip → keep it, try again later
+    }
+    plqWrite(keep);
+  } finally { plqBusy=false; }
+}
 function logPoints(outcome, shoe){
   if(state.logged) return; state.logged=true;
   if(!state.email && !state.phone) return; // no way to reward them
-  try{ fetch(API_BASE+"/pointslog",{method:"POST",headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({store:state.storeName||'', name:state.name, email:state.email, phone:state.phone, size:state.size, outcome:outcome, shoe:shoe})
-  }).catch(e=>console.warn('pointslog failed', e)); }catch(e){ console.warn(e); }
+  const row={store:state.storeName||'', name:state.name, email:state.email, phone:state.phone, size:state.size, outcome:outcome, shoe:shoe};
+  const q=plqRead(); q.push(row); plqWrite(q); // persist first so it survives even if the tab is closed
+  flushPointsLog(); // fire now; if it fails the queue guarantees a retry (no silent drop)
 }
 // Matched screen "Done — next customer": if they never redeemed, they still get +300 points.
 function doneMatched(){ if(!state.redeemed){ const m=state._match; logPoints('Matched — no redeem', (m&&m.name)||''); } reset(); }
@@ -687,7 +709,8 @@ try{ const sv=localStorage.getItem('pp_store'); if(sv && STORES.some(s=>s.id===s
 applyStore();
 if(state.store){ fetchStock(); go('welcome'); } // already set today → skip the gate + warm the stock cache
 check();
-window.addEventListener('load', ()=>{ setTimeout(loadFace, 300); }); // warm up models on the device
+window.addEventListener('load', ()=>{ setTimeout(loadFace, 300); flushPointsLog(); }); // warm up models + re-send any +300 rows that didn't confirm last session
+window.addEventListener('online', flushPointsLog); // connection came back → drain the queue
 </script>
 </body>
 </html>
