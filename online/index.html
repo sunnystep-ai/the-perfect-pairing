@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<title>Sunnystep · The Perfect Pairing</title>
+<style>
+  @font-face{font-family:'Matter';src:url('fonts/Matter-Light.ttf') format('truetype');font-weight:300;font-style:normal;font-display:swap;}
+  @font-face{font-family:'Matter';src:url('fonts/Matter-Regular.ttf') format('truetype');font-weight:400;font-style:normal;font-display:swap;}
+  @font-face{font-family:'Matter';src:url('fonts/Matter-Medium.ttf') format('truetype');font-weight:500;font-style:normal;font-display:swap;}
+  @font-face{font-family:'Matter';src:url('fonts/Matter-SemiBold.ttf') format('truetype');font-weight:600;font-style:normal;font-display:swap;}
+  @font-face{font-family:'Matter';src:url('fonts/Matter-Bold.ttf') format('truetype');font-weight:700 900;font-style:normal;font-display:swap;}
+  :root{
+    --orange:#F56A19; --orange-2:#FF9248; --ink:#37304a; --muted:#8e88a0;
+    --glass:rgba(255,255,255,.66); --glassline:rgba(255,255,255,.9);
+    --shadow:0 22px 48px rgba(96,76,130,.18);
+  }
+  *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; font-family:'Matter',-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; }
+  body{ margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center; padding:18px;
+        background:#dfe3ec; }
+  .device{ width:418px; max-width:100%; height:858px; max-height:95vh; border-radius:42px; overflow:hidden; position:relative;
+           box-shadow:0 30px 80px rgba(40,30,70,.42); border:9px solid #15131c;
+           /* official SUNNYSTEP brand gradient — stretched to fill the tall screen
+              (the asset is square; 'cover' was cropping it to the pale centre). CSS brand fallback beneath. */
+           background:url('brand-gradient.png') center/100% 100% no-repeat,
+             radial-gradient(at 86% 7%,  #FBF49E 0%, transparent 55%),
+             radial-gradient(at 12% 93%, #FBF49E 0%, transparent 55%),
+             radial-gradient(at 7% 12%,  #C3E4F7 0%, transparent 55%),
+             radial-gradient(at 93% 88%, #C3E4F7 0%, transparent 55%),
+             #E9F2DE; }
+  .screen{ position:absolute; inset:0; padding:30px 22px 100px; display:none; flex-direction:column; overflow-y:auto; }
+  .screen.active{ display:flex; animation:rise .42s cubic-bezier(.2,.8,.25,1); }
+  @keyframes rise{ from{opacity:0; transform:translateY(12px);} to{opacity:1; transform:none;} }
+  .wm{ display:flex; align-items:center; gap:6px; font-weight:800; color:var(--ink); font-size:15px; letter-spacing:.2px; }
+  .wm .dot{ width:18px;height:18px;border-radius:50%;background:linear-gradient(135deg,#FFC24B,var(--orange)); }
+  .logo{ width:150px; height:auto; display:block; margin:2px auto 2px 0; }
+  .logo.sm{ width:118px; }
+  .hero{ width:100%; border-radius:22px; display:block; margin-top:6px; box-shadow:var(--shadow); }
+  h1{ font-size:30px; line-height:1.14; margin:18px 4px 8px; color:var(--ink); font-weight:800; letter-spacing:-.4px; }
+  h1 .thin{ font-weight:400; color:#6a637d; }
+  p.sub{ color:var(--muted); font-size:15px; line-height:1.5; margin:0 4px 18px; }
+  .spacer{ flex:1; }
+  /* glass + white cards */
+  .glass{ background:var(--glass); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px);
+          border:1px solid var(--glassline); border-radius:28px; box-shadow:var(--shadow); }
+  .pad{ padding:18px; }
+  /* buttons */
+  .btn{ display:block; width:100%; border:none; border-radius:30px; padding:17px; font-size:17px; font-weight:800; cursor:pointer;
+        color:#fff; background:linear-gradient(135deg,var(--orange-2),var(--orange));
+        box-shadow:0 12px 26px rgba(245,106,25,.36); letter-spacing:.2px; }
+  .btn:disabled{ background:#e9d3c4; box-shadow:none; color:#fff8; cursor:default; }
+  .btn.ghost{ background:rgba(255,255,255,.7); color:var(--ink); box-shadow:var(--shadow); border:1px solid var(--glassline); }
+  .center{ text-align:center; }
+  /* details */
+  .label{ font-size:12px; font-weight:800; color:var(--muted); text-transform:uppercase; letter-spacing:.7px; margin:4px 2px 8px; }
+  input[type=email],input[type=text],input[type=tel]{ width:100%; padding:15px 16px; font-size:16px; border:1px solid #ece7f2; border-radius:16px; background:#fff; color:var(--ink); }
+  .sizes{ display:grid; grid-template-columns:repeat(5,1fr); gap:8px; }
+  .sz{ padding:13px 0; text-align:center; border:1px solid #ece7f2; border-radius:14px; font-weight:800; cursor:pointer; color:var(--ink); background:#fff; transition:.15s; }
+  .sz.sel{ background:linear-gradient(135deg,#5a4b7a,var(--ink)); color:#fff; border-color:transparent; transform:translateY(-1px); box-shadow:0 8px 16px rgba(55,48,74,.3); }
+  .consent{ display:flex; gap:10px; align-items:flex-start; margin-top:16px; font-size:13px; color:var(--muted); line-height:1.45; }
+  .consent input{ margin-top:2px; transform:scale(1.25); accent-color:var(--orange); }
+  /* scan stage */
+  .stage{ position:relative; height:330px; border-radius:26px; margin:8px 0 16px; overflow:hidden;
+          background:radial-gradient(120% 90% at 50% 20%, #fff 0%, rgba(255,255,255,.35) 70%, rgba(255,255,255,0) 100%); }
+  .frame{ position:absolute; inset:46px 70px; }
+  .corner{ position:absolute; width:30px; height:30px; border:3px solid var(--orange); }
+  .corner.tl{ top:0;left:0;border-right:0;border-bottom:0;border-radius:10px 0 0 0; }
+  .corner.tr{ top:0;right:0;border-left:0;border-bottom:0;border-radius:0 10px 0 0; }
+  .corner.bl{ bottom:0;left:0;border-right:0;border-top:0;border-radius:0 0 0 10px; }
+  .corner.br{ bottom:0;right:0;border-left:0;border-top:0;border-radius:0 0 10px 0; }
+  .face{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:120px; }
+  .mesh{ position:absolute; inset:46px 70px; border-radius:16px; opacity:0; transition:opacity .5s;
+         background-image:radial-gradient(rgba(245,106,25,.6) 1.1px, transparent 1.6px); background-size:15px 15px; }
+  .mesh.on{ opacity:.85; animation:sweep 1.5s linear infinite; }
+  @keyframes sweep{ from{background-position:0 0;} to{background-position:15px 15px;} }
+  .fchip{ position:absolute; background:rgba(255,255,255,.82); backdrop-filter:blur(8px); border:1px solid var(--glassline);
+          padding:8px 12px; border-radius:16px; font-size:12.5px; font-weight:800; color:var(--ink); box-shadow:0 8px 18px rgba(96,76,130,.18);
+          opacity:0; transform:scale(.8); }
+  .fchip.show{ opacity:1; transform:scale(1); transition:.45s cubic-bezier(.2,.9,.3,1.3); }
+  .fchip .k{ color:var(--orange); }
+  .scanline{ position:absolute; left:70px; right:70px; top:46px; height:2px; background:linear-gradient(90deg,transparent,var(--orange),transparent); opacity:.0; }
+  .scanline.on{ opacity:.9; animation:scan 1.8s ease-in-out infinite; }
+  @keyframes scan{ 0%{top:46px;}50%{top:284px;}100%{top:46px;} }
+  /* result */
+  .badge{ font-size:23px; font-weight:800; color:var(--ink); margin:2px 4px 14px; letter-spacing:-.3px; }
+  .shoewrap{ background:#fff; border-radius:22px; padding:8px; }
+  .shoewrap img{ width:100%; aspect-ratio:1/1; object-fit:cover; border-radius:16px; display:block; }
+  .pname{ font-weight:800; font-size:19px; color:var(--ink); margin-top:12px; }
+  .pcol{ color:var(--muted); font-size:13.5px; margin-top:2px; }
+  .why{ font-size:14.5px; color:#5a5470; line-height:1.5; margin:14px 4px; }
+  .pricerow{ display:flex; align-items:baseline; gap:10px; margin:4px 4px 2px; }
+  .pricerow .deal{ font-size:26px; font-weight:900; color:var(--orange); }
+  .pricerow s{ color:#b3aec2; font-size:16px; }
+  .pricerow .pct{ margin-left:auto; background:#fff0e6; color:var(--orange); font-weight:800; font-size:12px; padding:5px 10px; border-radius:20px; }
+  .sent{ font-size:13px; color:var(--muted); margin:10px 4px 2px; }
+  /* result reveal — score counts up, persona lands, card flips in, copy follows */
+  .eyebrow{ font-size:13px; font-weight:800; letter-spacing:1.4px; text-transform:uppercase; color:var(--orange); margin:2px 4px 0; }
+  .score{ font-size:54px; font-weight:900; color:var(--ink); letter-spacing:-1.5px; line-height:1.05; margin:0 4px; }
+  .score .pctm{ font-size:20px; font-weight:800; color:var(--orange); letter-spacing:0; margin-left:6px; }
+  .persona{ font-size:27px; font-weight:800; color:var(--ink); margin:2px 4px 14px; letter-spacing:-.4px; }
+  .kicker{ font-size:12.5px; color:var(--muted); line-height:1.45; margin:0 4px 4px; }
+  .fate{ font-size:13.5px; font-weight:800; color:var(--ink); line-height:1.45; background:#fff7e8; border:1px solid #ffe6c4; border-radius:14px; padding:10px 12px; margin:10px 0; }
+  .fate .k{ color:var(--orange); }
+  #result .rv{ opacity:0; }
+  #result.play .rv{ animation:popin .5s cubic-bezier(.2,.8,.25,1) forwards; }
+  #result.play .card{ animation:flipin .6s cubic-bezier(.2,.8,.25,1) forwards; }
+  #result.play .d1{ animation-delay:.25s; } #result.play .d2{ animation-delay:.45s; }
+  #result.play .d3{ animation-delay:.95s; } #result.play .d4{ animation-delay:1.15s; }
+  #result.play .d5{ animation-delay:1.35s; }
+  @keyframes popin{ from{opacity:0; transform:translateY(10px) scale(.97);} to{opacity:1; transform:none;} }
+  @keyframes flipin{ from{opacity:0; transform:perspective(900px) rotateY(55deg) scale(.94);} to{opacity:1; transform:none;} }
+  .cfbox{ position:absolute; inset:0; pointer-events:none; overflow:hidden; z-index:5; }
+  .cf{ position:absolute; top:-14px; width:9px; height:14px; border-radius:2px; opacity:0; animation:cfall linear forwards; }
+  @keyframes cfall{ 0%{opacity:1; transform:translateY(0) rotate(0deg);} 100%{opacity:0; transform:translateY(660px) rotate(560deg);} }
+  .stk{ font-size:13.5px; font-weight:800; margin:12px 4px 14px; display:flex; align-items:center; gap:7px; }
+  .stk.here{ color:#2fa45f; } .stk.ship{ color:#6b6480; }
+  .stk .pip{ width:8px;height:8px;border-radius:50%; } .here .pip{ background:#2fa45f; } .ship .pip{ background:#9b94ad; }
+  /* online 50%-off code reveal */
+  .codebox{ background:#fff7e8; border:1.5px dashed #f6b56b; border-radius:16px; padding:14px 12px; margin:14px 0 6px; text-align:center; }
+  .codelbl{ font-size:11px; font-weight:800; letter-spacing:1.4px; color:var(--orange); }
+  .codeval{ font-size:23px; font-weight:900; color:var(--ink); letter-spacing:.6px; margin-top:5px; font-variant-numeric:tabular-nums; word-break:break-all; }
+  .codehint{ font-size:12px; color:var(--muted); margin-top:6px; line-height:1.42; }
+  /* points */
+  .ring{ width:150px;height:150px;border-radius:50%; margin:6px auto 14px; display:flex;align-items:center;justify-content:center;flex-direction:column;
+         background:conic-gradient(var(--orange) 0 78%, #ffe3cf 78% 100%); box-shadow:0 14px 30px rgba(245,106,25,.28); }
+  .ring .inner{ width:122px;height:122px;border-radius:50%; background:#fff; display:flex;align-items:center;justify-content:center;flex-direction:column; }
+  .ring .big{ font-size:40px; font-weight:900; color:var(--orange); line-height:1; }
+  .ring .lbl{ font-size:12px; font-weight:800; color:var(--muted); margin-top:3px; }
+  .cam{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; transform:scaleX(-1); background:#0c0b10; }
+  .snapimg{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; transform:scaleX(-1); }
+  .camhint{ position:absolute; left:0; right:0; bottom:10px; text-align:center; color:#fff; font-size:12px; font-weight:800; letter-spacing:.3px; text-shadow:0 1px 6px rgba(0,0,0,.55); pointer-events:none; }
+  .stage.live{ background:#0c0b10; }
+  /* store selection (gate before the flow) */
+  .storelist{ display:flex; flex-direction:column; gap:10px; margin-top:6px; }
+  .storebtn{ display:flex; align-items:center; gap:12px; width:100%; text-align:left; border:1px solid var(--glassline);
+             border-radius:20px; padding:17px 18px; background:rgba(255,255,255,.72); color:var(--ink); font-weight:800;
+             font-size:17px; cursor:pointer; box-shadow:var(--shadow); transition:.15s; }
+  .storebtn:active{ transform:translateY(1px); }
+  .storebtn .pin{ font-size:19px; line-height:1; }
+  .storebtn.sel{ background:linear-gradient(135deg,var(--orange-2),var(--orange)); color:#fff; border-color:transparent; }
+  .storechip{ display:inline-flex; align-items:center; gap:7px; align-self:flex-start; background:rgba(255,255,255,.72);
+              border:1px solid var(--glassline); padding:8px 14px; border-radius:20px; font-size:13px; font-weight:800;
+              color:var(--ink); cursor:pointer; box-shadow:var(--shadow); margin-bottom:2px; }
+  .storechip .chg{ color:var(--orange); }
+
+  /* ---- iPad / tablet kiosk: full-screen, larger type + touch targets ---- */
+  @media (min-width:700px){
+    body{ padding:0; background:#c9ceda; }
+    .device{ width:100vw; height:100vh; height:100dvh; max-width:none; max-height:none;
+             border-radius:0; border:0; box-shadow:none; }
+    .screen{ padding:calc(54px + env(safe-area-inset-top)) 40px calc(120px + env(safe-area-inset-bottom)); align-items:center; }
+    .screen > *{ width:100%; max-width:580px; }
+    .wm{ font-size:19px; }
+    .logo{ width:200px; height:auto; } .logo.sm{ width:150px; }
+    .hero{ border-radius:28px; }
+    h1{ font-size:46px; margin:24px 4px 12px; }
+    p.sub{ font-size:19px; margin:0 4px 22px; }
+    .glass{ border-radius:32px; } .pad{ padding:24px; }
+    .btn{ font-size:22px; padding:22px; border-radius:38px; }
+    .label{ font-size:14px; margin:6px 2px 10px; }
+    input[type=email],input[type=text],input[type=tel]{ font-size:20px; padding:19px 18px; border-radius:18px; }
+    .sizes{ gap:12px; } .sz{ padding:20px 0; font-size:20px; border-radius:16px; }
+    .consent{ font-size:15px; margin-top:20px; } .consent input{ transform:scale(1.5); }
+    .stage{ height:460px; border-radius:30px; }
+    .frame,.mesh{ inset:60px 96px; } .scanline{ left:96px; right:96px; }
+    @keyframes scan{ 0%{top:60px;}50%{top:400px;}100%{top:60px;} }
+    .face{ font-size:170px; }
+    .fchip{ font-size:14px; padding:10px 15px; }
+    .badge{ font-size:30px; margin:4px 4px 18px; }
+    .eyebrow{ font-size:15px; }
+    .score{ font-size:68px; } .score .pctm{ font-size:25px; }
+    .persona{ font-size:36px; margin-bottom:18px; }
+    .kicker{ font-size:14.5px; } .fate{ font-size:16.5px; padding:13px 15px; }
+    .pname{ font-size:24px; } .pcol{ font-size:15px; } .why{ font-size:17px; }
+    .pricerow .deal{ font-size:32px; } .pricerow s{ font-size:19px; } .pricerow .pct{ font-size:14px; }
+    .stk{ font-size:16px; } .sent{ font-size:15px; }
+    .ring{ width:180px; height:180px; } .ring .inner{ width:146px; height:146px; } .ring .big{ font-size:48px; }
+    .storebtn{ font-size:20px; padding:20px 22px; border-radius:22px; } .storebtn .pin{ font-size:22px; }
+    .storechip{ font-size:15px; padding:10px 16px; }
+  }
+</style>
+<script defer src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api/dist/face-api.js"></script>
+</head>
+<body>
+<div class="device">
+
+  <!-- 1 · WELCOME -->
+  <section id="welcome" class="screen active">
+    <img class="logo" src="https://sunnystep-ai.github.io/the-perfect-pairing/logo.svg" alt="sunnystep">
+    <img class="hero" src="https://sunnystep-ai.github.io/the-perfect-pairing/images/ai-scan.png" alt="The Perfect Pairing — a 20-second style scan reveals your match and unlocks 50% off your second pair.">
+    <h1 style="margin-top:16px">Your second pair,<br><span class="thin">picked for you.</span></h1>
+    <p class="sub">A 20-second style scan finds the Sunnystep that matches your look — and unlocks it at <b style="color:var(--ink)">50% off</b> your second pair.</p>
+    <div class="spacer" style="min-height:18px"></div>
+    <button class="btn" style="margin-top:6px" onclick="go('details')">Start my scan &rarr;</button>
+    <p class="sub center" style="margin:12px 0 0">Free · takes 20 seconds · your photo never leaves your phone</p>
+  </section>
+
+  <!-- 2 · DETAILS -->
+  <section id="details" class="screen">
+    <div class="wm"><span class="dot"></span> Where should we send your match?</div>
+    <div class="glass pad" style="margin-top:16px">
+      <div class="label">Name</div>
+      <input type="text" id="cname" placeholder="First name" oninput="check()">
+      <div class="label" style="margin-top:16px">Email</div>
+      <input type="email" id="email" placeholder="you@email.com" oninput="check()">
+      <div class="label" style="margin-top:16px">Phone <span style="text-transform:none;font-weight:600;color:#c3bdd0">(optional)</span></div>
+      <input type="tel" id="phone" placeholder="e.g. 9123 4567" oninput="check()">
+      <div style="font-size:12px;color:var(--muted);margin-top:8px;line-height:1.4">We'll email your match and your <b style="color:var(--ink)">50%-off code</b> so it's saved for checkout.</div>
+      <div class="label" style="margin-top:16px">Your shoe size</div>
+      <div class="sizes" id="sizeGrid"></div>
+      <label class="consent"><input type="checkbox" id="consent" onchange="check()" checked>
+        <span>Fun style scan to find your match. Your photo is processed on your own device and <b style="color:var(--ink)">never uploaded or stored</b>.</span></label>
+    </div>
+    <div class="spacer"></div>
+    <button class="btn" id="scanBtn" onclick="toFace()" disabled>Scan me &rarr;</button>
+  </section>
+
+  <!-- 3 · FACE -->
+  <section id="face" class="screen">
+    <div class="wm center" style="justify-content:center">Frame your face</div>
+    <div class="stage live" style="margin-top:14px">
+      <video id="cam" class="cam" autoplay playsinline muted></video>
+      <div class="face" id="faceFallback" style="display:none">🙂</div>
+      <div class="frame"><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></div>
+      <div class="camhint" id="camHint">starting camera…</div>
+    </div>
+    <p class="sub center">Center your face in the frame and hold still. Your photo stays on this device.</p>
+    <div class="spacer"></div>
+    <button class="btn" onclick="analyse()">Hold steady &amp; scan</button>
+  </section>
+
+  <!-- 4 · ANALYSING -->
+  <section id="analysing" class="screen">
+    <div class="wm center" style="justify-content:center">Reading your style…</div>
+    <div class="stage live" style="margin-top:14px">
+      <img id="snapImg" class="snapimg" alt="" style="display:none">
+      <div class="face" id="faceFallback2">🙂</div>
+      <div class="mesh on"></div>
+      <div class="scanline on"></div>
+      <div class="frame"><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></div>
+      <div class="fchip" id="fc0" style="top:30px;left:12px"></div>
+      <div class="fchip" id="fc1" style="top:140px;right:8px"></div>
+      <div class="fchip" id="fc2" style="bottom:26px;left:20px"></div>
+    </div>
+    <div class="spacer"></div>
+    <p class="sub center" id="findMsg">finding your match ●●●</p>
+  </section>
+
+  <!-- 5 · RESULT -->
+  <section id="result" class="screen">
+    <div class="eyebrow rv">✨ It's a match</div>
+    <div class="score rv"><span id="rScore">0</span><span class="pctm">% match</span></div>
+    <div class="persona rv d1" id="rPersona"></div>
+    <div class="glass pad card rv d2">
+      <div class="shoewrap"><img id="rImg" alt=""></div>
+      <div class="pname" id="rName"></div>
+      <div class="pcol" id="rCol"></div>
+      <div class="why rv d3" id="rWhy"></div>
+      <div class="kicker rv d3" id="rKick"></div>
+      <div class="pricerow rv d4"><span class="deal" id="rDeal"></span><s id="rRrp"></s><span class="pct">50% OFF</span></div>
+      <div class="fate rv d4" id="rFate"></div>
+      <div class="codebox rv d5" id="rCodeBox">
+        <div class="codelbl">YOUR 50%-OFF CODE</div>
+        <div class="codeval" id="rCode">·  ·  ·  ·  ·</div>
+        <div class="codehint" id="rCodeHint">Reserving your code…</div>
+      </div>
+      <div class="sent rv d5" id="rSent"></div>
+    </div>
+    <div style="height:20px"></div>
+    <button class="btn rv d5" id="rCta" disabled>Getting your code…</button>
+    <button class="btn ghost rv d5" style="margin-top:10px" onclick="reset()">Scan a different look</button>
+  </section>
+
+  <!-- 6 · POINTS -->
+  <section id="points" class="screen">
+    <div class="badge">Not your pair today 💛</div>
+    <div class="glass pad center">
+      <p class="sub" style="margin-top:2px">Your size just sold out of the online capsule — but you're not leaving empty-handed.</p>
+      <div class="ring"><div class="inner"><div class="big">+300</div><div class="lbl">POINTS</div></div></div>
+      <div style="font-weight:800;color:var(--ink)">Added to your membership</div>
+      <div class="sent center" id="pSent" style="margin-top:14px"></div>
+    </div>
+    <div class="spacer"></div>
+    <a class="btn center" href="https://sunnystep.com/collections/all" style="text-decoration:none;margin-bottom:10px">Browse all shoes  →</a>
+    <button class="btn ghost" onclick="reset()">Scan again</button>
+  </section>
+
+</div>
+
+<script>
+// ---- Live stock + catalog from the Perfect Pairing API (Deno Deploy → "AI Foot Scan" Lark workbook). ----
+// Source tabs are never mutated; each redeem appends to the Redemptions log and nets off live stock.
+const API_BASE = "https://the-perfect-pairing-api.winita-ai.deno.net";
+const IMG_BASE = "https://sunnystep-ai.github.io/the-perfect-pairing/"; // always resolve shoe images to the PUBLIC url (never file:// when testing locally) so emails show the photo
+// Live online stock straight from the Shopify "Warehouse Win-Bells" location, filtered to the 30-pair
+// online pool (only shoes that have a product page + code). No store gate — this is the public website scan.
+let stockCache=null, stockFetch=null;
+function fetchStock(){
+  if(stockCache) return Promise.resolve(stockCache);
+  if(!stockFetch){
+    stockFetch = fetch(API_BASE+"/webstock")
+      .then(r=>r.json())
+      .then(j=>{ stockCache=(j.colourways||[])
+          .filter(c=>c.handle && c.rrp)                 // in the online 50%-off pool (has a product page + price)
+          .map(c=>({
+          name:c.design, colour:c.colour,
+          img:/^https?:\/\//.test(c.image||'') ? c.image : (IMG_BASE+"images/"+(c.image||'')),
+          rrp:c.rrp, deal:c.deal||(c.rrp/2), handle:c.handle,
+          sizes:c.sizes||{}, tone:c.tone||{warm:0,light:0.5,vibe:"classic"}
+        })); return stockCache; })
+      .catch(e=>{ console.warn("webstock fetch failed", e); return null; })
+      .finally(()=>{ stockFetch=null; });
+  }
+  return stockFetch;
+}
+// CURATED = hand-written emotional copy for the hero capsule styles, keyed "design||colour".
+// persona = fallback identity when the face read fails (persona is otherwise picked from the read, see PERSONAS)
+// whys = emotional match reason per vibe read; a string, or {any, m} when a male read deserves different flavour.
+// Gender is NEVER shown back to the customer — it only tunes tone of voice.
+const CURATED_SRC = [
+ {name:"Balance Runner", colour:"Natural Tan",
+  why:"Warm, easy, goes with everything — Natural Tan is the pair the rest of your wardrobe has been waiting for.",
+  persona:"The Everyday Original", chips:["Easy Minimalist","Warm Neutrals","Everyday Walker"],
+  whys:{
+   calm:"The scan read you warm and unhurried — someone who moves through the day on their own rhythm. Natural Tan doesn't ask for attention. It just goes everywhere you do.",
+   playful:"There's an easy warmth the camera caught straight away. Natural Tan is that energy in a shoe — relaxed, sunny, up for wherever the day wanders.",
+   confident:"You read as someone who keeps it simple on purpose. Natural Tan is the quiet flex — one clean tone that works with everything you already own."}},
+ {name:"Balance Runner", colour:"Sakura",
+  why:"Soft, light, a little bit of blush in every step — Sakura lifts the simplest outfit.",
+  persona:"The Soft Optimist", chips:["Soft & Playful","Blush Tones","Light Steps"],
+  whys:{
+   calm:"Underneath the calm, the scan caught something soft and light. Sakura is that feeling in a shoe — a gentle blush that lifts the simplest outfit.",
+   playful:"There's a brightness the camera caught straight away. Sakura is that feeling in a shoe — soft, light, a little bit of blush in every step.",
+   confident:"You read sure of yourself — which is exactly who wears Sakura best. A soft blush runner only works when you're not trying too hard. You're not."}},
+ {name:"Balance Walker", colour:"Natural Tan",
+  why:"One warm sandy tone, soft underfoot, zero fuss — the walker that works with everything.",
+  persona:"The Quiet Classic", chips:["Quiet Classic","Sandy Neutrals","All-Day Ease"],
+  whys:{
+   calm:"The scan read you easy and classic — no fuss, no noise. This Natural Tan walker is the same: one warm tone, soft underfoot, good with everything.",
+   playful:"The camera caught a warm, easygoing energy. This Natural Tan walker matches it — light, friendly, made for long wandering days.",
+   confident:"You read as someone who's already sorted — so here's the shoe version of that. A clean Natural Tan walker that never overthinks it and never lets you down."}},
+ {name:"Elevate Lace-up Walker", colour:"White",
+  why:"Crisp, fresh and impossible to get wrong — a clean White lace-up is the easiest yes.",
+  persona:"The Fresh Start", chips:["Fresh & Sporty","Clean Whites","Active Days"],
+  whys:{
+   calm:"The scan read you fresh and clear — someone who likes things clean and simple. A crisp White lace-up is the easiest yes in your wardrobe.",
+   playful:"There's a bright, up-for-anything energy the camera caught immediately. Crisp White keeps up — fresh, sporty, ready to be out all day.",
+   confident:{any:"You read cool and collected — and nothing backs that up like a clean White sneaker. Sharp without shouting.",
+              m:"You read cool and collected — and nothing backs that up like a clean White sneaker. Sharp for work, easy for everything after."}}},
+ {name:"Elevate Lace-up Walker", colour:"Black",
+  why:"Sleek, versatile, never off-duty — the Black lace-up that goes everywhere you do.",
+  persona:"The All-Rounder", chips:["Sleek & Versatile","Monochrome","Move Fast"],
+  whys:{
+   calm:{any:"The scan read you sleek and steady — someone who moves through the day without fuss. Black Elevate is the same: goes anywhere, matches everything, never off-duty.",
+         m:"The scan read you sleek and steady — someone who moves through the day without fuss. Black Elevate does both shifts: dress it up, run it down."},
+   playful:"Big bright energy — grounded by the one shoe that goes with all of it. Black Elevate lets the rest of you do the talking.",
+   confident:"You read as someone who's already decided where they're going. Black Elevate keeps up — sleek, sure, zero fuss."}},
+ {name:"Balance Space Runner", colour:"Velvet Full Black",
+  why:"Plush velvet, deep black, quietly dramatic — a statement you can walk all day in.",
+  persona:"The Night Mover", chips:["Bold & Plush","Velvet Black","Statement Steps"],
+  whys:{
+   calm:"Under the calm, the scan caught a bolder streak. Velvet Full Black is for exactly that — quiet on the surface, a statement up close.",
+   playful:"The camera caught a spark — someone who likes a little drama in the details. Velvet Full Black delivers: plush, deep, unmistakably you.",
+   confident:"You read bold — the kind who doesn't need colour to stand out. Velvet Full Black agrees: all depth, all presence."}}
+];
+const CURATED = new Map(CURATED_SRC.map(c=>[(c.name+"||"+c.colour).toLowerCase(), c]));
+// per-vibe fallback copy for the rest of the 45-colourway capsule (matches catalog tone.vibe values)
+const VIBE_COPY = {
+  classic:{persona:"The Quiet Classic", chips:["Quiet Classic","Warm Neutrals","All-Day Ease"],
+    why:"Warm, easy, goes with everything — {shoe} is the pair the rest of your wardrobe has been waiting for.",
+    whys:{calm:"The scan read you warm and unhurried — someone who moves on their own rhythm. {shoe} doesn't ask for attention. It just goes everywhere you do.",
+      playful:"There's an easy warmth the camera caught straight away. {shoe} is that energy in a shoe — relaxed, easy, up for wherever the day wanders.",
+      confident:"You read as someone who keeps it simple on purpose. {shoe} is the quiet flex — clean, considered, works with everything you own."}},
+  playful:{persona:"The Soft Optimist", chips:["Soft & Playful","Fresh Pop","Light Steps"],
+    why:"Soft, light, a little lift in every step — {shoe} brightens the simplest outfit.",
+    whys:{calm:"Underneath the calm, the scan caught something soft and light. {shoe} is that feeling in a shoe — a gentle lift for the simplest outfit.",
+      playful:"There's a brightness the camera caught straight away. {shoe} is that feeling in a shoe — soft, light, a little joy in every step.",
+      confident:"You read sure of yourself — which is exactly who wears {shoe} best. A soft pop only works when you're not trying too hard. You're not."}},
+  fresh:{persona:"The Fresh Start", chips:["Fresh & Sporty","Clean & Crisp","Active Days"],
+    why:"Crisp, fresh and impossible to get wrong — {shoe} is the easiest yes.",
+    whys:{calm:"The scan read you fresh and clear — someone who likes things clean and simple. {shoe} is the easiest yes in your wardrobe.",
+      playful:"There's a bright, up-for-anything energy the camera caught immediately. {shoe} keeps up — fresh, sporty, ready to be out all day.",
+      confident:"You read cool and collected — and nothing backs that up like {shoe}. Sharp without shouting."}},
+  sleek:{persona:"The All-Rounder", chips:["Sleek & Versatile","Monochrome","Move Fast"],
+    why:"Sleek, versatile, never off-duty — {shoe} goes everywhere you do.",
+    whys:{calm:"The scan read you sleek and steady — someone who moves through the day without fuss. {shoe} is the same: goes anywhere, matches everything.",
+      playful:"Big bright energy — grounded by the one shoe that goes with all of it. {shoe} lets the rest of you do the talking.",
+      confident:"You read as someone who's already decided where they're going. {shoe} keeps up — sleek, sure, zero fuss."}},
+  bold:{persona:"The Night Mover", chips:["Bold & Plush","Statement Steps","Main Character"],
+    why:"Deep, plush, quietly dramatic — {shoe} is a statement you can walk all day in.",
+    whys:{calm:"Under the calm, the scan caught a bolder streak. {shoe} is for exactly that — quiet on the surface, a statement up close.",
+      playful:"The camera caught a spark — someone who likes a little drama in the details. {shoe} delivers: plush, deep, unmistakably you.",
+      confident:"You read bold — the kind who doesn't need to shout to stand out. {shoe} agrees: all depth, all presence."}}
+};
+function copyFor(s){
+  const cur = CURATED.get((s.name+"||"+s.colour).toLowerCase());
+  if(cur) return cur;
+  const v = VIBE_COPY[(s.tone&&s.tone.vibe)||"classic"]||VIBE_COPY.classic;
+  const shoe = s.colour+" "+s.name;
+  const sub = t=>t.replace(/\{shoe\}/g, shoe);
+  return { persona:v.persona, chips:v.chips, why:sub(v.why),
+    whys:{calm:sub(v.whys.calm), playful:sub(v.whys.playful), confident:sub(v.whys.confident)} };
+}
+let state = { size:null, email:"", name:"", phone:"", forced:null, _k:0, camOn:false, _profile:null, logged:false, _match:null, _code:null };
+const grid = document.getElementById('sizeGrid');
+for(let s=35;s<=46;s++){ const d=document.createElement('div'); d.className='sz'; d.textContent=s;
+  d.onclick=()=>{ state.size=s; [...grid.children].forEach(c=>c.classList.remove('sel')); d.classList.add('sel'); check(); }; grid.appendChild(d); }
+function check(){ state.email=document.getElementById('email').value.trim();
+  state.name=document.getElementById('cname').value.trim();
+  state.phone=document.getElementById('phone').value.trim();
+  // Online: email is required (that's how the match + 50% code reach them); phone is optional.
+  const ok = state.size && state.email.includes('@') && document.getElementById('consent').checked;
+  document.getElementById('scanBtn').disabled=!ok; }
+function go(id){ document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active')); document.getElementById(id).classList.add('active'); }
+function rng(){ state._k=(state._k||(state.size*7+state.email.length)); state._k=(state._k*9301+49297)%233280; return state._k/233280; }
+
+// ---- On-device face engine (vladmandic/face-api). Frame is read on the phone, never uploaded, never stored. ----
+const MODEL_URL = "https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model/";
+let faceReady=false, faceLoading=null, stream=null;
+function loadFace(){
+  if(faceReady) return Promise.resolve(true);
+  if(typeof faceapi==='undefined') return Promise.resolve(false);
+  if(!faceLoading){
+    faceLoading = Promise.all([
+      faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
+      faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
+      faceapi.nets.faceExpressionNet.loadFromUri(MODEL_URL),
+      faceapi.nets.ageGenderNet.loadFromUri(MODEL_URL)
+    ]).then(()=>{ faceReady=true; return true; }).catch(e=>{ console.warn('face models failed to load', e); faceLoading=null; return false; });
+  }
+  return faceLoading;
+}
+function toFace(){ go('face'); startCam(); }
+async function startCam(){
+  const v=document.getElementById('cam'), hint=document.getElementById('camHint'), fb=document.getElementById('faceFallback');
+  loadFace();
+  if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){ state.camOn=false; v.style.display='none'; fb.style.display='flex'; hint.textContent='camera not available — tap scan to continue'; return; }
+  try{
+    stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:'user', width:{ideal:640}, height:{ideal:640}}, audio:false});
+    v.srcObject=stream; v.style.display='block'; fb.style.display='none';
+    state.camOn=true; hint.textContent='looking good — hold still';
+  }catch(e){
+    state.camOn=false; v.style.display='none'; fb.style.display='flex';
+    hint.textContent='camera off — tap scan to continue';
+  }
+}
+function stopCam(){ if(stream){ stream.getTracks().forEach(t=>t.stop()); stream=null; } state.camOn=false; }
+function avgPatch(ctx,x,y,w,h){ x=Math.max(2,Math.min(w-3,x|0)); y=Math.max(2,Math.min(h-3,y|0));
+  const d=ctx.getImageData(x-2,y-2,5,5).data; let r=0,g=0,b=0,n=0; for(let i=0;i<d.length;i+=4){ r+=d[i];g+=d[i+1];b+=d[i+2];n++; } return [r/n,g/n,b/n]; }
+function readUndertone(ctx, lm, w, h){
+  let S=[]; const p=lm&&lm.positions;
+  if(p&&p.length>=68){ [p[3],p[13],p[2],p[14],p[30]].forEach(q=>S.push(avgPatch(ctx,q.x,q.y,w,h)));
+    S.push(avgPatch(ctx,(p[19].x+p[24].x)/2, p[19].y-(p[8].y-p[19].y)*0.22, w, h)); }
+  else { S.push(avgPatch(ctx,w*0.5,h*0.5,w,h)); }
+  let R=0,G=0,B=0; S.forEach(s=>{R+=s[0];G+=s[1];B+=s[2];}); R/=S.length;G/=S.length;B/=S.length;
+  return { warmth:(R-B), light:(R+G+B)/3 };
+}
+function buildProfile(det, tone){
+  const gender=det.gender, exp=det.expressions||{};
+  const topExp=Object.entries(exp).sort((a,b)=>b[1]-a[1])[0][0];
+  const warm=Math.max(-1,Math.min(1, tone.warmth/26)), lightAxis=tone.light/255;
+  const undertone = warm>0.12?'Warm undertone':warm<-0.12?'Cool undertone':'Neutral undertone';
+  const depth = lightAxis>0.7?'Light':lightAxis<0.42?'Deep':'Medium';
+  const happy = (exp.happy||0)>0.45 || topExp==='happy' || topExp==='surprised';
+  const vibe = happy?'Bright & playful':(topExp==='neutral'?'Calm & classic':'Quietly confident');
+  const genderChip = gender==='female'?'Feminine flair':'Sharp & sleek';
+  return { gender, warm, lightAxis, undertone, depth, happy, vibe, chips:[genderChip, undertone+' · '+depth, vibe] };
+}
+// Clearance-first matcher: skew to whatever we hold the MOST of in the customer's size (→ Natural Tan in 35–38, Sakura in 42).
+// CLEAR_W = skew strength; higher = more Natural Tan. Face read is a secondary nudge so the scan still feels personal.
+const CLEAR_W = 1.5;
+function pickMatch(eligible, pr){
+  const sz=state.size;
+  const maxS = Math.max.apply(null, eligible.map(s=>s.sizes[sz]||0)) || 1;
+  let best=null, bs=-1e9;
+  eligible.forEach(s=>{
+    let sc = CLEAR_W * ((s.sizes[sz]||0)/maxS);            // clear the deepest stock first
+    if(pr){ const t=s.tone||{warm:0,light:0.5,vibe:'classic'};
+      sc += -( Math.abs(pr.warm-t.warm) + 0.8*Math.abs(pr.lightAxis-t.light) );
+      if(pr.happy && t.vibe==='playful') sc+=0.35;
+      if(!pr.happy && (t.vibe==='sleek'||t.vibe==='bold'||t.vibe==='classic')) sc+=0.15;
+    }
+    if(sc>bs){ bs=sc; best=s; }
+  });
+  return best;
+}
+async function analyse(){
+  stockCache=null; // re-read live stock on EVERY scan — the store tab may have been edited (restock/correction) since the last customer, so never trust a warm cache for the match decision
+  const stock = await fetchStock();
+  if(!stock){ alert("Couldn't load live stock — check the internet connection, then tap scan again."); return; }
+  const eligible = stock.filter(s=>(s.sizes[state.size]||0)>0);
+  let profile=null, cv=null, ctx=null;
+  // capture the frame while the camera screen is still live
+  if(state.camOn && state.forced!=='no'){
+    try{ const v=document.getElementById('cam'); const w=v.videoWidth||480, h=v.videoHeight||480;
+      cv=document.createElement('canvas'); cv.width=w; cv.height=h;
+      ctx=cv.getContext('2d',{willReadFrequently:true}); ctx.drawImage(v,0,0,w,h);
+    }catch(e){ console.warn('frame capture failed', e); cv=null; }
+  }
+  go('analysing');
+  if(cv){ const sn=document.getElementById('snapImg'); sn.src=cv.toDataURL('image/jpeg',0.85); sn.style.display='block';
+    document.getElementById('faceFallback2').style.display='none'; }
+  if(cv && state.forced!=='no'){
+    try{ const ok=await loadFace();
+      if(ok){ const det=await faceapi.detectSingleFace(cv, new faceapi.TinyFaceDetectorOptions({inputSize:256, scoreThreshold:0.4})).withFaceLandmarks().withFaceExpressions().withAgeAndGender();
+        if(det) profile=buildProfile(det, readUndertone(ctx, det.landmarks, cv.width, cv.height)); }
+    }catch(e){ console.warn('on-device analyse failed', e); }
+  }
+  stopCam(); // privacy: camera off; the frame stays in memory only — never uploaded, never saved
+  state._profile=profile;
+  let match=null;
+  if(state.forced==='no') match=null;
+  else if(eligible.length) match=pickMatch(eligible, profile); // clearance-skewed (works with or without a face read)
+  const set = profile?profile.chips:(match?copyFor(match).chips:["Reading vibe","Reading palette","Reading energy"]);
+  ['fc0','fc1','fc2'].forEach((id,i)=>{ const el=document.getElementById(id);
+    el.classList.remove('show'); el.innerHTML='<span class="k">✦</span> '+(set[i]||'');
+    setTimeout(()=>el.classList.add('show'), 550+i*480); });
+  document.getElementById('findMsg').textContent = profile?'matching your read ●●●':'finding your match ●●●';
+  setTimeout(()=>showResult(match), 2400);
+}
+// ---- Klaviyo client-side event push (public company_id only — safe on a public page). ----
+// Sends NO email itself; a Klaviyo Flow triggered on these metrics sends the congrats/points email (built with CRM agent).
+const KLAVIYO_ID="YrDDH5";
+function kEvent(metric, props){
+  try{
+    if(!state.email || !state.email.includes('@')) return;
+    const p = Object.assign({name:state.name||'', phone:state.phone||''}, props||{});
+    fetch("https://a.klaviyo.com/client/events/?company_id="+KLAVIYO_ID, {
+      method:"POST", headers:{"Content-Type":"application/json","revision":"2025-04-15"},
+      body:JSON.stringify({data:{type:"event",attributes:{
+        metric:{data:{type:"metric",attributes:{name:metric}}},
+        profile:{data:{type:"profile",attributes:{email:state.email, first_name:(state.name||undefined)}}},
+        properties:p
+      }}})
+    }).catch(e=>console.warn('klaviyo event failed', e));
+  }catch(e){ console.warn('klaviyo', e); }
+}
+// ---- the reveal: persona + match score + emotional why + fate line ----
+// Persona names come in gendered pairs where it helps (same archetype, different name); the read itself is never shown.
+const PERSONAS = {
+  warm:   { playful:{f:"The Sunny Mover",   m:"The Sunny Mover"},
+            calm:   {f:"The Quiet Glow",    m:"The Steady One"},
+            confident:{f:"The Golden Stride", m:"The Golden Stride"} },
+  cool:   { playful:{f:"The Fresh Spark",   m:"The Fresh Spark"},
+            calm:   {f:"The Effortless One", m:"The Effortless One"},
+            confident:{f:"The Sharp Walker", m:"The Sharp Walker"} },
+  neutral:{ playful:{f:"The Bright Side",   m:"The Bright Side"},
+            calm:   {f:"The Easy Balance",  m:"The Easy Balance"},
+            confident:{f:"The Statement Walker", m:"The Statement Walker"} }
+};
+const KICKER = "Like every Sunnystep, it's tested in MIT Sports Lab — so the pair that matches your look also protects your walk.";
+function vibeKey(p){ return p.happy ? 'playful' : (p.vibe==='Calm & classic' ? 'calm' : 'confident'); }
+function warmKey(p){ return p.warm>0.12 ? 'warm' : (p.warm<-0.12 ? 'cool' : 'neutral'); }
+function personaFor(p, match){
+  if(!p) return copyFor(match).persona;
+  return PERSONAS[warmKey(p)][vibeKey(p)][p.gender==='male'?'m':'f'];
+}
+function whyFor(p, match){
+  const c = copyFor(match);
+  const w = p && c.whys && c.whys[vibeKey(p)];
+  if(!w) return c.why;
+  if(typeof w==='string') return w;
+  return (p.gender==='male' && w.m) ? w.m : w.any;
+}
+function matchScore(p, match){
+  if(!p) return 90 + Math.round(rng()*6); // no face read → still a strong number
+  const t = match.tone || {warm:0, light:0.5};
+  const close = 1 - Math.min(1, (Math.abs(p.warm-t.warm) + 0.8*Math.abs(p.lightAxis-t.light)) / 1.8);
+  return Math.max(88, Math.min(97, Math.round(88 + close*9)));
+}
+function countScore(target){
+  const el=document.getElementById('rScore'); const t0=performance.now(), dur=1100;
+  function step(t){ const k=Math.min(1,(t-t0)/dur), e=1-Math.pow(1-k,3);
+    el.textContent=Math.round(e*target); if(k<1) requestAnimationFrame(step); }
+  el.textContent='0'; requestAnimationFrame(step);
+}
+function confetti(){
+  const host=document.getElementById('result');
+  const old=host.querySelector('.cfbox'); if(old) old.remove();
+  const box=document.createElement('div'); box.className='cfbox';
+  const cols=['#F56A19','#FFC24B','#FBF49E','#C3E4F7','#CBB9E8','#37304a']; // brand palette only
+  for(let i=0;i<26;i++){ const c=document.createElement('i'); c.className='cf';
+    c.style.left=(Math.random()*100)+'%'; c.style.background=cols[i%cols.length];
+    c.style.animationDelay=(Math.random()*0.6)+'s'; c.style.animationDuration=(1.7+Math.random()*1.2)+'s';
+    box.appendChild(c); }
+  host.appendChild(box); setTimeout(()=>box.remove(), 3800);
+}
+function shopLink(code, handle){
+  const base='https://sunnystep.com/discount/'+encodeURIComponent(code);
+  return handle ? (base+'?redirect=/products/'+encodeURIComponent(handle)) : base;
+}
+function showResult(match){
+  state._match = match;
+  if(!match){ document.getElementById('pSent').textContent = state.email ? ('✉ Sent to '+state.email) : (state.phone ? ('✦ Saved to '+state.phone) : '✦ Saved to your membership');
+    kEvent("Perfect Pairing Web No Match", {size:state.size, points:300});
+    logPoints('No match', '');
+    go('points'); return; }
+  const p=state._profile;
+  const persona=personaFor(p, match), score=matchScore(p, match);
+  document.getElementById('rPersona').textContent=persona;
+  document.getElementById('rImg').src=match.img;
+  document.getElementById('rName').textContent=match.name;
+  document.getElementById('rCol').textContent=match.colour+' · in your size '+state.size+' ✓';
+  document.getElementById('rWhy').textContent=whyFor(p, match);
+  document.getElementById('rKick').textContent=KICKER;
+  document.getElementById('rFate').innerHTML='<span class="k">✦</span> Add any full-price pair to your bag and this one drops to <b>50% off</b> at checkout — your code does it automatically.';
+  document.getElementById('rDeal').textContent='$'+match.deal.toFixed(2);
+  document.getElementById('rRrp').textContent='$'+match.rrp.toFixed(2);
+  document.getElementById('rSent').textContent = state.email ? ('✦ Match + code emailed to '+state.email) : '✦ Match saved';
+  // Reset the code box + CTA for a fresh reveal, then mint the buy-first BXGY code server-side.
+  const codeEl=document.getElementById('rCode'), hintEl=document.getElementById('rCodeHint'), cta=document.getElementById('rCta');
+  codeEl.textContent='·  ·  ·  ·  ·'; hintEl.textContent='Reserving your code…';
+  cta.disabled=true; cta.textContent='Getting your code…'; cta.onclick=null;
+  go('result');
+  const rs=document.getElementById('result');
+  rs.classList.remove('play'); void rs.offsetWidth; rs.classList.add('play'); // restart the reveal every time
+  countScore(score); confetti();
+  fetch(API_BASE+"/webmatch",{method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({email:state.email, name:state.name, phone:state.phone, design:match.name, shoe:match.name,
+      colour:match.colour, size:String(state.size), persona:persona, score:score,
+      img:(function(){ try{ return new URL(match.img, IMG_BASE).href; }catch(e){ return match.img||''; } })()})
+  }).then(r=>r.json()).then(j=>{
+    if(j && j.ok && j.code){
+      state._code=j.code;
+      codeEl.textContent=j.code;
+      hintEl.textContent='Applied automatically at checkout — or copy it. Single-use, just for you.';
+      const link=shopLink(j.code, j.handle||match.handle);
+      cta.disabled=false; cta.textContent='Shop this pair — 50% off  →';
+      cta.onclick=()=>window.open(link,'_blank','noopener');
+    } else { codeFallback(codeEl, hintEl, cta, match); }
+  }).catch(e=>{ console.warn('webmatch failed', e); codeFallback(codeEl, hintEl, cta, match); });
+}
+function codeFallback(codeEl, hintEl, cta, match){
+  codeEl.textContent='sent to your email';
+  hintEl.textContent="We're emailing your 50%-off code now — it'll be in your inbox in a moment.";
+  cta.disabled=false; cta.textContent='Shop this pair  →';
+  cta.onclick=()=>{ if(match.handle) window.open('https://sunnystep.com/products/'+encodeURIComponent(match.handle),'_blank','noopener'); };
+}
+// Log a scan that ended without a match → +300 points list (only with a contact).
+// Durable + decoupled: the row is queued in localStorage first, then POSTed with retry. A transient
+// network / API blip (or a scan during a redeploy) can no longer silently drop a promised +300 —
+// anything not yet confirmed is re-sent on the next scan and on page load, so the row always lands.
+const PLQ_KEY='pp_web_pointslog_queue';
+function plqRead(){ try{ return JSON.parse(localStorage.getItem(PLQ_KEY)||'[]'); }catch(e){ return []; } }
+function plqWrite(q){ try{ localStorage.setItem(PLQ_KEY, JSON.stringify(q)); }catch(e){} }
+let plqBusy=false;
+async function flushPointsLog(){
+  if(plqBusy) return; plqBusy=true;
+  try{
+    let q=plqRead(); if(!q.length) return;
+    const keep=[];
+    for(const row of q){
+      try{ const r=await fetch(API_BASE+"/webpointslog",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(row)});
+        const j=await r.json().catch(()=>({}));
+        if(!(r.ok && j && j.ok)) keep.push(row); // not confirmed saved → keep it for the next flush
+      }catch(e){ keep.push(row); } // offline / blip → keep it, try again later
+    }
+    plqWrite(keep);
+  } finally { plqBusy=false; }
+}
+function logPoints(outcome, shoe){
+  if(state.logged) return; state.logged=true;
+  if(!state.email && !state.phone) return; // no way to reward them
+  const row={store:'Website', name:state.name, email:state.email, phone:state.phone, size:state.size, outcome:outcome, shoe:shoe};
+  const q=plqRead(); q.push(row); plqWrite(q); // persist first so it survives even if the tab is closed
+  flushPointsLog(); // fire now; if it fails the queue guarantees a retry (no silent drop)
+}
+function reset(){ stopCam();
+  document.getElementById('result').classList.remove('play');
+  const sn=document.getElementById('snapImg'); if(sn){ sn.src=''; sn.style.display='none'; }
+  const ff2=document.getElementById('faceFallback2'); if(ff2) ff2.style.display='';
+  state={size:null,email:'',name:'',phone:'',forced:null,_k:0,camOn:false,_profile:null,logged:false,_match:null,_code:null};
+  ['cname','email','phone'].forEach(id=>{const el=document.getElementById(id); if(el) el.value='';}); // clear inputs for a fresh scan
+  stockCache=null; fetchStock(); // refresh live stock
+  [...grid.children].forEach(c=>c.classList.remove('sel')); check(); go('welcome'); }
+// ---- init (public website scan — no store gate) ----
+fetchStock(); // warm the live stock cache so the first scan is instant
+check();
+window.addEventListener('load', ()=>{ setTimeout(loadFace, 300); flushPointsLog(); }); // warm up models + re-send any +300 rows that didn't confirm last session
+window.addEventListener('online', flushPointsLog); // connection came back → drain the queue
+</script>
+</body>
+</html>
