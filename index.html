@@ -668,7 +668,7 @@ async function redeem(match, cta, stk){
   cta.disabled=true; cta.textContent='Logging redemption…';
   try{
     const r=await fetch(API_BASE+"/redeem",{method:"POST",headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({store:state.store, design:match.name, colour:match.colour, size:String(state.size), email:state.email, name:state.name, phone:state.phone})});
+      body:JSON.stringify({store:state.store, design:match.name, colour:match.colour, size:String(state.size), email:state.email, name:state.name, phone:state.phone, concerns:state.concerns, use_case:state.useCase, gift:'Life is Suntastic'})});
     const j=await r.json();
     if(j.ok){
       state.redeemed=true; // redeemer → goes to Redemptions log, NOT the +300 points list
