@@ -59,6 +59,9 @@
   .sizes{ display:grid; grid-template-columns:repeat(5,1fr); gap:8px; }
   .sz{ padding:13px 0; text-align:center; border:1px solid #ece7f2; border-radius:14px; font-weight:800; cursor:pointer; color:var(--ink); background:#fff; transition:.15s; }
   .sz.sel{ background:linear-gradient(135deg,#5a4b7a,var(--ink)); color:#fff; border-color:transparent; transform:translateY(-1px); box-shadow:0 8px 16px rgba(55,48,74,.3); }
+  .chips{ display:flex; flex-wrap:wrap; gap:8px; }
+  .chip{ padding:10px 14px; border:1px solid #ece7f2; border-radius:22px; font-weight:700; font-size:14px; cursor:pointer; color:var(--ink); background:#fff; transition:.15s; }
+  .chip.sel{ background:linear-gradient(135deg,var(--orange-2),var(--orange)); color:#fff; border-color:transparent; transform:translateY(-1px); box-shadow:0 6px 14px rgba(245,106,25,.28); }
   .consent{ display:flex; gap:10px; align-items:flex-start; margin-top:16px; font-size:13px; color:var(--muted); line-height:1.45; }
   .consent input{ margin-top:2px; transform:scale(1.25); accent-color:var(--orange); }
   /* scan stage */
@@ -210,8 +213,12 @@
       <div style="font-size:12px;color:var(--muted);margin-top:8px;line-height:1.4">We'll email your match and your <b style="color:var(--ink)">50%-off code</b> so it's saved for checkout.</div>
       <div class="label" style="margin-top:16px">Your shoe size</div>
       <div class="sizes" id="sizeGrid"></div>
+      <div class="label" style="margin-top:16px">Main concern <span style="text-transform:none;font-weight:600;color:#c3bdd0">· pick up to 2</span></div>
+      <div class="chips" id="concernChips"></div>
+      <div class="label" style="margin-top:16px">What are the shoes for?</div>
+      <div class="chips" id="useChips"></div>
       <label class="consent"><input type="checkbox" id="consent" onchange="check()" checked>
-        <span>Fun style scan to find your match. Your photo is processed on your own device and <b style="color:var(--ink)">never uploaded or stored</b>.</span></label>
+        <span>Email me my match, my <b style="color:var(--ink)">50%-off code</b> &amp; Sunnystep offers. Your photo is processed on your own device and <b style="color:var(--ink)">never uploaded or stored</b>.</span></label>
     </div>
     <div class="spacer"></div>
     <button class="btn" id="scanBtn" onclick="toFace()" disabled>Scan me &rarr;</button>
@@ -403,10 +410,25 @@ function copyFor(s){
   return { persona:v.persona, chips:v.chips, why:sub(v.why),
     whys:{calm:sub(v.whys.calm), playful:sub(v.whys.playful), confident:sub(v.whys.confident)} };
 }
-let state = { size:null, email:"", name:"", phone:"", forced:null, _k:0, camOn:false, _profile:null, logged:false, _match:null, _code:null };
+let state = { size:null, email:"", name:"", phone:"", concerns:[], useCase:"", forced:null, _k:0, camOn:false, _profile:null, logged:false, _match:null, _code:null };
 const grid = document.getElementById('sizeGrid');
 for(let s=35;s<=46;s++){ const d=document.createElement('div'); d.className='sz'; d.textContent=s;
   d.onclick=()=>{ state.size=s; [...grid.children].forEach(c=>c.classList.remove('sel')); d.classList.add('sel'); check(); }; grid.appendChild(d); }
+// Intake questions (feed the match + capture for remarketing). Concern = up to 2, use-case = single.
+const CONCERNS=["Feet","Knees","Back","Posture","Long standing","Wide feet","Bunion","Heel pain","Flat feet"];
+const USES=["Work","Walking","Travel","Daily wear","Retail shift"];
+function buildChips(containerId, opts, multi, get, set){
+  const c=document.getElementById(containerId); if(!c) return;
+  opts.forEach(o=>{ const d=document.createElement('div'); d.className='chip'; d.textContent=o;
+    d.onclick=()=>{
+      if(multi){ const cur=get(); const i=cur.indexOf(o);
+        if(i>=0) cur.splice(i,1); else { if(cur.length>=2) return; cur.push(o); } set(cur);
+      } else { set(get()===o?"":o); }
+      [...c.children].forEach(ch=> ch.classList.toggle('sel', multi? get().includes(ch.textContent) : get()===ch.textContent));
+    }; c.appendChild(d); });
+}
+buildChips('concernChips',CONCERNS,true,()=>state.concerns,v=>state.concerns=v);
+buildChips('useChips',USES,false,()=>state.useCase,v=>state.useCase=v);
 function check(){ state.email=document.getElementById('email').value.trim();
   state.name=document.getElementById('cname').value.trim();
   state.phone=document.getElementById('phone').value.trim();
@@ -531,7 +553,8 @@ function kEvent(metric, props){
       method:"POST", headers:{"Content-Type":"application/json","revision":"2025-04-15"},
       body:JSON.stringify({data:{type:"event",attributes:{
         metric:{data:{type:"metric",attributes:{name:metric}}},
-        profile:{data:{type:"profile",attributes:{email:state.email, first_name:(state.name||undefined)}}},
+        profile:{data:{type:"profile",attributes:{email:state.email, first_name:(state.name||undefined),
+          properties:{ foot_concern:(state.concerns&&state.concerns.length?state.concerns:undefined), shoe_use:(state.useCase||undefined), phone_raw:(state.phone||undefined), pp_consent:(document.getElementById('consent')||{}).checked }}}},
         properties:p
       }}})
     }).catch(e=>console.warn('klaviyo event failed', e));
@@ -620,6 +643,7 @@ function showResult(match){
   fetch(API_BASE+"/webmatch",{method:"POST",headers:{"Content-Type":"application/json"},
     body:JSON.stringify({email:state.email, name:state.name, phone:state.phone, design:match.name, shoe:match.name,
       colour:match.colour, size:String(state.size), persona:persona, score:score,
+      concerns:state.concerns, use_case:state.useCase,
       img:(function(){ try{ return new URL(match.img, IMG_BASE).href; }catch(e){ return match.img||''; } })()})
   }).then(r=>r.json()).then(j=>{
     if(j && j.ok && j.code){
@@ -663,7 +687,7 @@ async function flushPointsLog(){
 function logPoints(outcome, shoe){
   if(state.logged) return; state.logged=true;
   if(!state.email && !state.phone) return; // no way to reward them
-  const row={store:'Website', name:state.name, email:state.email, phone:state.phone, size:state.size, outcome:outcome, shoe:shoe};
+  const row={store:'Website', name:state.name, email:state.email, phone:state.phone, size:state.size, outcome:outcome, shoe:shoe, concerns:state.concerns, use_case:state.useCase};
   const q=plqRead(); q.push(row); plqWrite(q); // persist first so it survives even if the tab is closed
   flushPointsLog(); // fire now; if it fails the queue guarantees a retry (no silent drop)
 }
@@ -671,8 +695,9 @@ function reset(){ stopCam();
   document.getElementById('result').classList.remove('play');
   const sn=document.getElementById('snapImg'); if(sn){ sn.src=''; sn.style.display='none'; }
   const ff2=document.getElementById('faceFallback2'); if(ff2) ff2.style.display='';
-  state={size:null,email:'',name:'',phone:'',forced:null,_k:0,camOn:false,_profile:null,logged:false,_match:null,_code:null};
+  state={size:null,email:'',name:'',phone:'',concerns:[],useCase:'',forced:null,_k:0,camOn:false,_profile:null,logged:false,_match:null,_code:null};
   ['cname','email','phone'].forEach(id=>{const el=document.getElementById(id); if(el) el.value='';}); // clear inputs for a fresh scan
+  document.querySelectorAll('#concernChips .chip, #useChips .chip').forEach(c=>c.classList.remove('sel')); // clear intake chips
   stockCache=null; fetchStock(); // refresh live stock
   [...grid.children].forEach(c=>c.classList.remove('sel')); check(); go('welcome'); }
 // ---- init (public website scan — no store gate) ----

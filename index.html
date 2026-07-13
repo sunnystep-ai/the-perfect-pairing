@@ -59,6 +59,10 @@
   .sizes{ display:grid; grid-template-columns:repeat(5,1fr); gap:8px; }
   .sz{ padding:13px 0; text-align:center; border:1px solid #ece7f2; border-radius:14px; font-weight:800; cursor:pointer; color:var(--ink); background:#fff; transition:.15s; }
   .sz.sel{ background:linear-gradient(135deg,#5a4b7a,var(--ink)); color:#fff; border-color:transparent; transform:translateY(-1px); box-shadow:0 8px 16px rgba(55,48,74,.3); }
+  .chips{ display:flex; flex-wrap:wrap; gap:8px; }
+  .chip{ padding:10px 14px; border:1px solid #ece7f2; border-radius:22px; font-weight:700; font-size:14px; cursor:pointer; color:var(--ink); background:#fff; transition:.15s; }
+  .chip.sel{ background:linear-gradient(135deg,var(--orange-2),var(--orange)); color:#fff; border-color:transparent; transform:translateY(-1px); box-shadow:0 6px 14px rgba(245,106,25,.28); }
+  .giftcue{ margin:0 0 12px; background:linear-gradient(135deg,#FFF7E9,#FFEFD6); border:1px dashed var(--orange); border-radius:16px; padding:13px 16px; text-align:center; font-weight:700; color:var(--ink); font-size:15px; }
   .consent{ display:flex; gap:10px; align-items:flex-start; margin-top:16px; font-size:13px; color:var(--muted); line-height:1.45; }
   .consent input{ margin-top:2px; transform:scale(1.25); accent-color:var(--orange); }
   /* scan stage */
@@ -213,8 +217,12 @@
       <div style="font-size:12px;color:var(--muted);margin-top:8px;line-height:1.4">No email? A phone number lets us record the membership. Leave all blank to skip — you can still scan.</div>
       <div class="label" style="margin-top:16px">Shoe size</div>
       <div class="sizes" id="sizeGrid"></div>
+      <div class="label" style="margin-top:16px">Main concern <span style="color:var(--muted);font-weight:600">· pick up to 2</span></div>
+      <div class="chips" id="concernChips"></div>
+      <div class="label" style="margin-top:16px">What are the shoes for?</div>
+      <div class="chips" id="useChips"></div>
       <label class="consent"><input type="checkbox" id="consent" onchange="check()" checked>
-        <span>Fun style scan to find your match. My photo is processed on the spot and <b style="color:var(--ink)">deleted right after</b> — never stored.</span></label>
+        <span>Send me Sunnystep recommendations &amp; offers. My scan photo is processed on the spot and <b style="color:var(--ink)">deleted right after</b> — never stored.</span></label>
     </div>
     <div class="spacer"></div>
     <button class="btn" id="scanBtn" onclick="toFace()" disabled>Scan me &rarr;</button>
@@ -232,6 +240,7 @@
     <p class="sub center">Center your face in the frame and hold still. Your photo stays on this device.</p>
     <div class="spacer"></div>
     <button class="btn" onclick="analyse()">Hold steady &amp; scan</button>
+    <button class="btn ghost" style="margin-top:10px" onclick="analyse()">Can't scan? Skip &amp; use my answers →</button>
   </section>
 
   <!-- 4 · ANALYSING -->
@@ -268,6 +277,7 @@
       <div class="sent rv d5" id="rSent"></div>
     </div>
     <div style="height:24px"></div>
+    <div class="giftcue">🎁 Give the customer their free shoelaces — <b>“Life is Suntastic”</b></div>
     <button class="btn rv d5" id="rCta"></button>
     <button class="btn ghost rv d5" style="margin-top:10px" onclick="doneMatched()">Done — next customer</button>
   </section>
@@ -281,6 +291,7 @@
       <div style="font-weight:800;color:var(--ink)">Added to your membership</div>
       <div class="sent center" id="pSent" style="margin-top:14px"></div>
     </div>
+    <div class="giftcue">🎁 Give the customer their free shoelaces — <b>“Life is Suntastic”</b></div>
     <div class="spacer"></div>
     <button class="btn ghost" onclick="reset()">Done — next customer</button>
   </section>
@@ -411,10 +422,28 @@ function copyFor(s){
   return { persona:v.persona, chips:v.chips, why:sub(v.why),
     whys:{calm:sub(v.whys.calm), playful:sub(v.whys.playful), confident:sub(v.whys.confident)} };
 }
-let state = { size:null, email:"", name:"", phone:"", forced:null, _k:0, camOn:false, _profile:null, store:null, storeName:null, redeemed:false, logged:false, _match:null };
+let state = { size:null, email:"", name:"", phone:"", concerns:[], useCase:"", giftGiven:false, forced:null, _k:0, camOn:false, _profile:null, store:null, storeName:null, redeemed:false, logged:false, _match:null };
 const grid = document.getElementById('sizeGrid');
 for(let s=35;s<=46;s++){ const d=document.createElement('div'); d.className='sz'; d.textContent=s;
   d.onclick=()=>{ state.size=s; [...grid.children].forEach(c=>c.classList.remove('sel')); d.classList.add('sel'); check(); }; grid.appendChild(d); }
+// Intake questions (feed the match + capture for remarketing). Concern = up to 2, use-case = single.
+const CONCERNS=["Feet","Knees","Back","Posture","Long standing","Wide feet","Bunion","Heel pain","Flat feet"];
+const USES=["Work","Walking","Travel","Daily wear","Retail shift"];
+function buildChips(containerId, opts, multi, get, set){
+  const c=document.getElementById(containerId); if(!c) return;
+  opts.forEach(o=>{ const d=document.createElement('div'); d.className='chip'; d.textContent=o;
+    d.onclick=()=>{
+      if(multi){ const cur=get(); const i=cur.indexOf(o);
+        if(i>=0) cur.splice(i,1); else { if(cur.length>=2) return; cur.push(o); } set(cur);
+      } else { set(get()===o?"":o); }
+      [...c.children].forEach(ch=> ch.classList.toggle('sel', multi? get().includes(ch.textContent) : get()===ch.textContent));
+    }; c.appendChild(d); });
+}
+buildChips('concernChips',CONCERNS,true,()=>state.concerns,v=>state.concerns=v);
+buildChips('useChips',USES,false,()=>state.useCase,v=>state.useCase=v);
+// The mystery-gift cue only shows from the campaign launch (17 Jul SGT) — the intake questions run now.
+const GIFT_LIVE=(function(){ try{ return new Date() >= new Date('2026-07-17T00:00:00+08:00'); }catch(e){ return true; } })();
+if(!GIFT_LIVE){ document.querySelectorAll('.giftcue').forEach(el=>el.style.display='none'); }
 function check(){ state.email=document.getElementById('email').value.trim();
   state.name=document.getElementById('cname').value.trim();
   state.phone=document.getElementById('phone').value.trim();
@@ -539,8 +568,9 @@ function kEvent(metric, props){
       method:"POST", headers:{"Content-Type":"application/json","revision":"2025-04-15"},
       body:JSON.stringify({data:{type:"event",attributes:{
         metric:{data:{type:"metric",attributes:{name:metric}}},
-        profile:{data:{type:"profile",attributes:{email:state.email, first_name:(state.name||undefined)}}},
-        properties:p
+        profile:{data:{type:"profile",attributes:{email:state.email, first_name:(state.name||undefined),
+          properties:{ foot_concern:(state.concerns&&state.concerns.length?state.concerns:undefined), shoe_use:(state.useCase||undefined), phone_raw:(state.phone||undefined), pp_consent:(document.getElementById('consent')||{}).checked }}}},
+        properties:Object.assign({concern:state.concerns, use_case:state.useCase}, p)
       }}})
     }).catch(e=>console.warn('klaviyo event failed', e));
   }catch(e){ console.warn('klaviyo', e); }
@@ -625,6 +655,7 @@ function showResult(match){
   fetch(API_BASE+"/match",{method:"POST",headers:{"Content-Type":"application/json"},
     body:JSON.stringify({email:state.email, name:state.name, phone:state.phone, shoe:match.name, colour:match.colour, size:state.size,
       deal:match.deal, rrp:match.rrp, store:state.storeName||'', persona:persona, score:score,
+      concerns:state.concerns, use_case:state.useCase, gift:'Life is Suntastic',
       img:(function(){ try{ return new URL(match.img, IMG_BASE).href; }catch(e){ return ''; } })()})
   }).catch(e=>console.warn('match event failed', e));
   go('result');
@@ -680,7 +711,7 @@ async function flushPointsLog(){
 function logPoints(outcome, shoe){
   if(state.logged) return; state.logged=true;
   if(!state.email && !state.phone) return; // no way to reward them
-  const row={store:state.storeName||'', name:state.name, email:state.email, phone:state.phone, size:state.size, outcome:outcome, shoe:shoe};
+  const row={store:state.storeName||'', name:state.name, email:state.email, phone:state.phone, size:state.size, outcome:outcome, shoe:shoe, concerns:state.concerns, use_case:state.useCase, gift:'Life is Suntastic'};
   const q=plqRead(); q.push(row); plqWrite(q); // persist first so it survives even if the tab is closed
   flushPointsLog(); // fire now; if it fails the queue guarantees a retry (no silent drop)
 }
@@ -691,8 +722,9 @@ function reset(){ stopCam();
   const sn=document.getElementById('snapImg'); if(sn){ sn.src=''; sn.style.display='none'; }
   const ff2=document.getElementById('faceFallback2'); if(ff2) ff2.style.display='';
   const keepStore=state.store, keepName=state.storeName;
-  state={size:null,email:'',name:'',phone:'',forced:null,_k:0,camOn:false,_profile:null,store:keepStore,storeName:keepName,redeemed:false,logged:false,_match:null};
+  state={size:null,email:'',name:'',phone:'',concerns:[],useCase:'',giftGiven:false,forced:null,_k:0,camOn:false,_profile:null,store:keepStore,storeName:keepName,redeemed:false,logged:false,_match:null};
   ['cname','email','phone'].forEach(id=>{const el=document.getElementById(id); if(el) el.value='';}); // clear inputs for the next customer
+  document.querySelectorAll('#concernChips .chip, #useChips .chip').forEach(c=>c.classList.remove('sel')); // clear intake chips
   stockCache=null; fetchStock(); // refresh live stock for the next customer
   [...grid.children].forEach(c=>c.classList.remove('sel')); check(); go('welcome'); } // store persists → straight back to welcome for the next customer
 // ---- store gate (staff picks once; persists across customers + reloads) ----
